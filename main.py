@@ -5,6 +5,14 @@ import json
 import aiofiles
 from dotenv import load_dotenv
 
+# Import messages from separate file
+from messages import (
+    get_error_message, 
+    get_success_message, 
+    get_status_message, 
+    HELP_EMBED
+)
+
 # Load environment variables from .env file
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -35,7 +43,7 @@ async def load_authorized_users():
             '539464122027343873': 'StaffBotOwner'  # Default: your user ID
         }
     except json.JSONDecodeError:
-        print("Error: Invalid JSON in authorized_users.json. Using default.")
+        print(get_status_message("json_error"))
         return {
             '539464122027343873': 'StaffBotOwner'
         }
@@ -52,20 +60,20 @@ async def check_authorized_user(ctx):
         return True
     authorized_users = await load_authorized_users()
     if str(ctx.author.id) not in authorized_users:
-        await ctx.send("You are not authorized to use this command!")
+        await ctx.send(get_error_message("not_authorized"))
         return False
     return True
 
 # Event: Bot is ready
 @bot.event
 async def on_ready():
-    print(f'{bot.user} has connected to Discord!')
+    print(get_status_message("bot_ready", bot_name=bot.user))
 
 # Prefix command: .muteall
 @bot.command(name="muteall", description="Mutes all members in the user's voice channel except themselves")
 async def muteall(ctx):
     if not ctx.author.voice or not ctx.author.voice.channel:
-        await ctx.send("You must be in a voice channel to use this command!")
+        await ctx.send(get_error_message("not_in_voice"))
         return
 
     voice_channel = ctx.author.voice.channel
@@ -77,19 +85,19 @@ async def muteall(ctx):
                 await member.edit(mute=True)
                 members_muted += 1
             except discord.Forbidden:
-                await ctx.send(f"Failed to mute {member.name}: Missing permissions")
+                await ctx.send(get_error_message("missing_permissions", action="mute", member_name=member.name))
                 return
             except discord.HTTPException as e:
-                await ctx.send(f"Error muting {member.name}: {e}")
+                await ctx.send(get_error_message("http_error", action="muting", member_name=member.name, error=e))
                 return
 
-    await ctx.send(f"Successfully muted {members_muted} member(s) in {voice_channel.name}!")
+    await ctx.send(get_success_message("muted_users", count=members_muted, channel_name=voice_channel.name))
 
 # Prefix command: .unmuteall
 @bot.command(name="unmuteall", description="Unmutes all members in the user's voice channel except themselves")
 async def unmuteall(ctx):
     if not ctx.author.voice or not ctx.author.voice.channel:
-        await ctx.send("You must be in a voice channel to use this command!")
+        await ctx.send(get_error_message("not_in_voice"))
         return
 
     voice_channel = ctx.author.voice.channel
@@ -101,27 +109,27 @@ async def unmuteall(ctx):
                 await member.edit(mute=False)
                 members_unmuted += 1
             except discord.Forbidden:
-                await ctx.send(f"Failed to unmute {member.name}: Missing permissions")
+                await ctx.send(get_error_message("missing_permissions", action="unmute", member_name=member.name))
                 return
             except discord.HTTPException as e:
-                await ctx.send(f"Error unmuting {member.name}: {e}")
+                await ctx.send(get_error_message("http_error", action="unmuting", member_name=member.name, error=e))
                 return
 
-    await ctx.send(f"Successfully unmuted {members_unmuted} member(s) in {voice_channel.name}!")
+    await ctx.send(get_success_message("unmuted_users", count=members_unmuted, channel_name=voice_channel.name))
 
 # Prefix command: .auth USERID
 @bot.command(name="auth", description="Authorizes a user to use bot commands (restricted to bot owner)")
 async def auth(ctx, user_id: str):
     # Restrict to your user ID
     if ctx.author.id != 539464122027343873:
-        await ctx.send("Only the bot owner can use this command!")
+        await ctx.send(get_error_message("bot_owner_only"))
         return
 
     # Validate user_id
     try:
         user_id = int(user_id)
     except ValueError:
-        await ctx.send("Invalid user ID! Please provide a valid numeric user ID.")
+        await ctx.send(get_error_message("invalid_user_id"))
         return
 
     # Fetch the user to get their username
@@ -129,10 +137,10 @@ async def auth(ctx, user_id: str):
         user = await bot.fetch_user(user_id)
         username = user.name
     except discord.NotFound:
-        await ctx.send(f"User with ID {user_id} not found!")
+        await ctx.send(get_error_message("user_not_found_global", user_id=user_id))
         return
     except discord.HTTPException as e:
-        await ctx.send(f"Error fetching user: {e}")
+        await ctx.send(get_error_message("fetch_error", type="user", error=e))
         return
 
     # Load current authorized users
@@ -140,32 +148,32 @@ async def auth(ctx, user_id: str):
 
     # Check if user is already authorized
     if str(user_id) in authorized_users:
-        await ctx.send(f"User {username} (ID: {user_id}) is already authorized!")
+        await ctx.send(get_error_message("user_already_authorized", username=username, user_id=user_id))
         return
 
     # Add user to authorized list
     authorized_users[str(user_id)] = username
     await save_authorized_users(authorized_users)
-    await ctx.send(f"Successfully authorized {username} (ID: {user_id}) to use bot commands!")
+    await ctx.send(get_success_message("user_authorized", username=username, user_id=user_id))
 
 # Prefix command: .deauth USERID
 @bot.command(name="deauth", description="Removes a user's authorization to use bot commands (restricted to bot owner)")
 async def deauth(ctx, user_id: str):
     # Restrict to your user ID
     if ctx.author.id != 539464122027343873:
-        await ctx.send("Only the bot owner can use this command!")
+        await ctx.send(get_error_message("bot_owner_only"))
         return
 
     # Prevent deauthorizing the bot owner
     if user_id == '539464122027343873':
-        await ctx.send("You cannot deauthorize the bot owner!")
+        await ctx.send(get_error_message("cannot_deauth_owner"))
         return
 
     # Validate user_id
     try:
         user_id = int(user_id)
     except ValueError:
-        await ctx.send("Invalid user ID! Please provide a valid numeric user ID.")
+        await ctx.send(get_error_message("invalid_user_id"))
         return
 
     # Load current authorized users
@@ -173,7 +181,7 @@ async def deauth(ctx, user_id: str):
 
     # Check if user is authorized
     if str(user_id) not in authorized_users:
-        await ctx.send(f"User with ID {user_id} is not authorized!")
+        await ctx.send(get_error_message("user_not_authorized", user_id=user_id))
         return
 
     # Fetch the user to confirm their username
@@ -183,13 +191,13 @@ async def deauth(ctx, user_id: str):
     except discord.NotFound:
         username = authorized_users.get(str(user_id), "Unknown User")
     except discord.HTTPException as e:
-        await ctx.send(f"Error fetching user: {e}")
+        await ctx.send(get_error_message("fetch_error", type="user", error=e))
         return
 
     # Remove user from authorized list
     del authorized_users[str(user_id)]
     await save_authorized_users(authorized_users)
-    await ctx.send(f"Successfully deauthorized {username} (ID: {user_id}) from using bot commands!")
+    await ctx.send(get_success_message("user_deauthorized", username=username, user_id=user_id))
 
 # Prefix command: .moveall CHANNELID (UPDATED WITH ROLLBACK SUPPORT)
 @bot.command(name="moveall", description="Moves all members from the user's voice channel to the specified channel")
@@ -197,14 +205,14 @@ async def moveall(ctx, channel_id: str):
     global last_move_action
     
     if not ctx.author.voice or not ctx.author.voice.channel:
-        await ctx.send("You must be in a voice channel to use this command!")
+        await ctx.send(get_error_message("not_in_voice"))
         return
 
     # Validate channel_id
     try:
         channel_id = int(channel_id)
     except ValueError:
-        await ctx.send("Invalid channel ID! Please provide a valid numeric channel ID.")
+        await ctx.send(get_error_message("invalid_channel_id"))
         return
 
     # Get the destination channel
@@ -214,13 +222,13 @@ async def moveall(ctx, channel_id: str):
             destination_channel = await bot.fetch_channel(channel_id)
         
         if not isinstance(destination_channel, discord.VoiceChannel):
-            await ctx.send("The specified channel is not a voice channel!")
+            await ctx.send(get_error_message("not_voice_channel"))
             return
     except discord.NotFound:
-        await ctx.send(f"Voice channel with ID {channel_id} not found!")
+        await ctx.send(get_error_message("channel_not_found", channel_id=channel_id))
         return
     except discord.HTTPException as e:
-        await ctx.send(f"Error fetching channel: {e}")
+        await ctx.send(get_error_message("fetch_error", type="channel", error=e))
         return
 
     source_channel = ctx.author.voice.channel
@@ -238,10 +246,10 @@ async def moveall(ctx, channel_id: str):
             await member.move_to(destination_channel)
             members_moved += 1
         except discord.Forbidden:
-            await ctx.send(f"Failed to move {member.name}: Missing permissions")
+            await ctx.send(get_error_message("missing_permissions", action="move", member_name=member.name))
             return
         except discord.HTTPException as e:
-            await ctx.send(f"Error moving {member.name}: {e}")
+            await ctx.send(get_error_message("http_error", action="moving", member_name=member.name, error=e))
             return
 
     # Store the move action for potential rollback
@@ -252,7 +260,12 @@ async def moveall(ctx, channel_id: str):
         'guild_id': ctx.guild.id
     }
 
-    await ctx.send(f"Moved {members_moved} users from #{source_channel.name} {source_channel.id} to #{destination_channel.name} {destination_channel.id}")
+    await ctx.send(get_success_message("moved_users_channel", 
+                                     count=members_moved, 
+                                     source_name=source_channel.name, 
+                                     source_id=source_channel.id,
+                                     dest_name=destination_channel.name, 
+                                     dest_id=destination_channel.id))
 
 # Prefix command: .move USERID CHANNELID (UPDATED WITH ROLLBACK SUPPORT)
 @bot.command(name="move", description="Moves a specific user to the specified voice channel")
@@ -263,14 +276,14 @@ async def move(ctx, user_id: str, channel_id: str):
     try:
         user_id = int(user_id)
     except ValueError:
-        await ctx.send("Invalid user ID! Please provide a valid numeric user ID.")
+        await ctx.send(get_error_message("invalid_user_id"))
         return
 
     # Validate channel_id
     try:
         channel_id = int(channel_id)
     except ValueError:
-        await ctx.send("Invalid channel ID! Please provide a valid numeric channel ID.")
+        await ctx.send(get_error_message("invalid_channel_id"))
         return
 
     # Get the user
@@ -279,15 +292,15 @@ async def move(ctx, user_id: str, channel_id: str):
         if not member:
             member = await ctx.guild.fetch_member(user_id)
     except discord.NotFound:
-        await ctx.send(f"User with ID {user_id} not found in this server!")
+        await ctx.send(get_error_message("user_not_found", user_id=user_id))
         return
     except discord.HTTPException as e:
-        await ctx.send(f"Error fetching user: {e}")
+        await ctx.send(get_error_message("fetch_error", type="user", error=e))
         return
 
     # Check if user is in a voice channel
     if not member.voice or not member.voice.channel:
-        await ctx.send(f"{member.name} is not in a voice channel!")
+        await ctx.send(get_error_message("user_not_in_voice", member_name=member.name))
         return
 
     # Get the destination channel
@@ -297,13 +310,13 @@ async def move(ctx, user_id: str, channel_id: str):
             destination_channel = await bot.fetch_channel(channel_id)
         
         if not isinstance(destination_channel, discord.VoiceChannel):
-            await ctx.send("The specified channel is not a voice channel!")
+            await ctx.send(get_error_message("not_voice_channel"))
             return
     except discord.NotFound:
-        await ctx.send(f"Voice channel with ID {channel_id} not found!")
+        await ctx.send(get_error_message("channel_not_found", channel_id=channel_id))
         return
     except discord.HTTPException as e:
-        await ctx.send(f"Error fetching channel: {e}")
+        await ctx.send(get_error_message("fetch_error", type="channel", error=e))
         return
 
     # Move the user
@@ -319,11 +332,17 @@ async def move(ctx, user_id: str, channel_id: str):
         }
         
         await member.move_to(destination_channel)
-        await ctx.send(f"Moved @{member.name} {member.id} from #{source_channel.name} {source_channel.id} to #{destination_channel.name} {destination_channel.id}")
+        await ctx.send(get_success_message("moved_user",
+                                         member_name=member.name,
+                                         member_id=member.id,
+                                         source_name=source_channel.name,
+                                         source_id=source_channel.id,
+                                         dest_name=destination_channel.name,
+                                         dest_id=destination_channel.id))
     except discord.Forbidden:
-        await ctx.send(f"Failed to move {member.name}: Missing permissions")
+        await ctx.send(get_error_message("missing_permissions", action="move", member_name=member.name))
     except discord.HTTPException as e:
-        await ctx.send(f"Error moving {member.name}: {e}")
+        await ctx.send(get_error_message("http_error", action="moving", member_name=member.name, error=e))
 
 # Prefix command: .servermoveall CHANNELID (NEW)
 @bot.command(name="servermoveall", description="Moves all users from all voice channels in the server to the specified channel")
@@ -334,7 +353,7 @@ async def servermoveall(ctx, channel_id: str):
     try:
         channel_id = int(channel_id)
     except ValueError:
-        await ctx.send("Invalid channel ID! Please provide a valid numeric channel ID.")
+        await ctx.send(get_error_message("invalid_channel_id"))
         return
 
     # Get the destination channel
@@ -344,20 +363,20 @@ async def servermoveall(ctx, channel_id: str):
             destination_channel = await bot.fetch_channel(channel_id)
         
         if not isinstance(destination_channel, discord.VoiceChannel):
-            await ctx.send("The specified channel is not a voice channel!")
+            await ctx.send(get_error_message("not_voice_channel"))
             return
     except discord.NotFound:
-        await ctx.send(f"Voice channel with ID {channel_id} not found!")
+        await ctx.send(get_error_message("channel_not_found", channel_id=channel_id))
         return
     except discord.HTTPException as e:
-        await ctx.send(f"Error fetching channel: {e}")
+        await ctx.send(get_error_message("fetch_error", type="channel", error=e))
         return
 
     # Get all voice channels in the server
     voice_channels = [channel for channel in ctx.guild.channels if isinstance(channel, discord.VoiceChannel)]
     
     if not voice_channels:
-        await ctx.send("No voice channels found in this server!")
+        await ctx.send(get_error_message("no_voice_channels"))
         return
 
     # Store user positions before moving for rollback
@@ -380,10 +399,10 @@ async def servermoveall(ctx, channel_id: str):
                     await member.move_to(destination_channel)
                     members_moved += 1
                 except discord.Forbidden:
-                    await ctx.send(f"Failed to move {member.name} from #{channel.name} {channel.id}: Missing permissions")
+                    await ctx.send(get_error_message("missing_permissions", action="move", member_name=member.name))
                     return
                 except discord.HTTPException as e:
-                    await ctx.send(f"Error moving {member.name} from #{channel.name} {channel.id}: {e}")
+                    await ctx.send(get_error_message("http_error", action="moving", member_name=member.name, error=e))
                     return
 
     # Store the move action for potential rollback
@@ -394,7 +413,11 @@ async def servermoveall(ctx, channel_id: str):
         'guild_id': ctx.guild.id
     }
 
-    await ctx.send(f"Moved {members_moved} users from {channels_affected} voice channels to #{destination_channel.name} {destination_channel.id}")
+    await ctx.send(get_success_message("moved_users_server",
+                                     count=members_moved,
+                                     channels_count=channels_affected,
+                                     dest_name=destination_channel.name,
+                                     dest_id=destination_channel.id))
 
 # Prefix command: .back (NEW - ROLLBACK SYSTEM)
 @bot.command(name="back", description="Rollbacks the last move action, returning users to their original channels")
@@ -402,12 +425,12 @@ async def back(ctx):
     global last_move_action
     
     if not last_move_action:
-        await ctx.send("No move action to rollback!")
+        await ctx.send(get_error_message("no_rollback_data"))
         return
     
     # Check if the rollback is for the same guild
     if last_move_action['guild_id'] != ctx.guild.id:
-        await ctx.send("The last move action was performed in a different server!")
+        await ctx.send(get_error_message("rollback_different_server"))
         return
     
     user_positions = last_move_action['user_positions']
@@ -421,7 +444,7 @@ async def back(ctx):
         if not previous_destination:
             previous_destination = await bot.fetch_channel(last_move_action['destination_channel_id'])
     except (discord.NotFound, discord.HTTPException):
-        await ctx.send("Cannot find the previous destination channel for rollback!")
+        await ctx.send(get_error_message("rollback_channel_not_found"))
         return
     
     # Move users back to their original channels
@@ -450,10 +473,10 @@ async def back(ctx):
             channels_moved_to.add(original_channel.id)
             
         except discord.Forbidden:
-            await ctx.send(f"Failed to move {member.name} back: Missing permissions")
+            await ctx.send(get_error_message("missing_permissions", action="move", member_name=member.name))
             return
         except discord.HTTPException as e:
-            await ctx.send(f"Error moving {member.name} back: {e}")
+            await ctx.send(get_error_message("http_error", action="moving", member_name=member.name, error=e))
             return
         except (discord.NotFound, AttributeError):
             continue  # Skip if channel or member not found
@@ -463,7 +486,7 @@ async def back(ctx):
     # Clear the last move action since we've used it
     last_move_action = None
     
-    await ctx.send(f"Rolled back! Moved {members_moved_back} users back to {channels_affected} original voice channels")
+    await ctx.send(get_success_message("rollback_success", count=members_moved_back, channels_count=channels_affected))
 
 # Prefix command: .kick USERID
 @bot.command(name="kick", description="Kicks a specific user from their voice channel")
@@ -472,7 +495,7 @@ async def kick(ctx, user_id: str):
     try:
         user_id = int(user_id)
     except ValueError:
-        await ctx.send("Invalid user ID! Please provide a valid numeric user ID.")
+        await ctx.send(get_error_message("invalid_user_id"))
         return
 
     # Get the user
@@ -481,32 +504,36 @@ async def kick(ctx, user_id: str):
         if not member:
             member = await ctx.guild.fetch_member(user_id)
     except discord.NotFound:
-        await ctx.send(f"User with ID {user_id} not found in this server!")
+        await ctx.send(get_error_message("user_not_found", user_id=user_id))
         return
     except discord.HTTPException as e:
-        await ctx.send(f"Error fetching user: {e}")
+        await ctx.send(get_error_message("fetch_error", type="user", error=e))
         return
 
     # Check if user is in a voice channel
     if not member.voice or not member.voice.channel:
-        await ctx.send(f"{member.name} is not in a voice channel!")
+        await ctx.send(get_error_message("user_not_in_voice", member_name=member.name))
         return
 
     # Kick the user from voice channel
     try:
         source_channel = member.voice.channel
         await member.move_to(None)  # None disconnects them
-        await ctx.send(f"Kicked @{member.name} {member.id} from #{source_channel.name} {source_channel.id}")
+        await ctx.send(get_success_message("kicked_user",
+                                         member_name=member.name,
+                                         member_id=member.id,
+                                         channel_name=source_channel.name,
+                                         channel_id=source_channel.id))
     except discord.Forbidden:
-        await ctx.send(f"Failed to kick {member.name}: Missing permissions")
+        await ctx.send(get_error_message("missing_permissions", action="kick", member_name=member.name))
     except discord.HTTPException as e:
-        await ctx.send(f"Error kicking {member.name}: {e}")
+        await ctx.send(get_error_message("http_error", action="kicking", member_name=member.name, error=e))
 
 # Prefix command: .kickall
 @bot.command(name="kickall", description="Kicks all members from the user's voice channel except themselves")
 async def kickall(ctx):
     if not ctx.author.voice or not ctx.author.voice.channel:
-        await ctx.send("You must be in a voice channel to use this command!")
+        await ctx.send(get_error_message("not_in_voice"))
         return
 
     voice_channel = ctx.author.voice.channel
@@ -519,13 +546,16 @@ async def kickall(ctx):
                 await member.move_to(None)  # None disconnects them
                 members_kicked += 1
             except discord.Forbidden:
-                await ctx.send(f"Failed to kick {member.name}: Missing permissions")
+                await ctx.send(get_error_message("missing_permissions", action="kick", member_name=member.name))
                 return
             except discord.HTTPException as e:
-                await ctx.send(f"Error kicking {member.name}: {e}")
+                await ctx.send(get_error_message("http_error", action="kicking", member_name=member.name, error=e))
                 return
 
-    await ctx.send(f"Kicked {members_kicked} users from #{voice_channel.name} {voice_channel.id}")
+    await ctx.send(get_success_message("kicked_users_channel",
+                                     count=members_kicked,
+                                     channel_name=voice_channel.name,
+                                     channel_id=voice_channel.id))
 
 # Prefix command: .serverkickall
 @bot.command(name="serverkickall", description="Kicks all members from all voice channels in the server")
@@ -537,7 +567,7 @@ async def serverkickall(ctx):
     voice_channels = [channel for channel in ctx.guild.channels if isinstance(channel, discord.VoiceChannel)]
     
     if not voice_channels:
-        await ctx.send("No voice channels found in this server!")
+        await ctx.send(get_error_message("no_voice_channels"))
         return
 
     # Kick all members from all voice channels
@@ -550,13 +580,17 @@ async def serverkickall(ctx):
                     await member.move_to(None)  # None disconnects them
                     members_kicked += 1
                 except discord.Forbidden:
-                    await ctx.send(f"Failed to kick {member.name} from #{channel.name} {channel.id}: Missing permissions")
+                    await ctx.send(get_error_message("missing_permissions", action="kick", member_name=member.name))
                     return
                 except discord.HTTPException as e:
-                    await ctx.send(f"Error kicking {member.name} from #{channel.name} {channel.id}: {e}")
+                    await ctx.send(get_error_message("http_error", action="kicking", member_name=member.name, error=e))
                     return
 
-    await ctx.send(f"Kicked {members_kicked} users from {channels_affected} voice channels in server {ctx.guild.name} {ctx.guild.id}")
+    await ctx.send(get_success_message("kicked_users_server",
+                                     count=members_kicked,
+                                     channels_count=channels_affected,
+                                     server_name=ctx.guild.name,
+                                     server_id=ctx.guild.id))
 
 # Remove the default help command first
 bot.remove_command('help')
@@ -565,88 +599,20 @@ bot.remove_command('help')
 @bot.command(name="help", description="Shows all available commands and their usage")
 async def help_command(ctx):
     help_embed = discord.Embed(
-        title="🤖 Bot Commands - User Management",
-        description="Here are all available commands and their usage:",
-        color=0x00ff00
+        title=HELP_EMBED["title"],
+        description=HELP_EMBED["description"],
+        color=HELP_EMBED["color"]
     )
     
-    # Voice Control Commands
-    help_embed.add_field(
-        name="🔇 Voice Control Commands",
-        value=(
-            "`.muteall` - Mutes all members in your voice channel except yourself\n"
-            "`.unmuteall` - Unmutes all members in your voice channel except yourself"
-        ),
-        inline=False
-    )
+    # Add all fields from the HELP_EMBED configuration
+    for field in HELP_EMBED["fields"]:
+        help_embed.add_field(
+            name=field["name"],
+            value=field["value"],
+            inline=field["inline"]
+        )
     
-    # Move Commands
-    help_embed.add_field(
-        name="🔄 Move Commands",
-        value=(
-            "`.moveall <CHANNEL_ID>` - Moves ALL users (including yourself) from your voice channel to specified channel\n"
-            "`.move <USER_ID> <CHANNEL_ID>` - Moves a specific user to specified voice channel\n"
-            "`.servermoveall <CHANNEL_ID>` - Moves ALL users from ALL voice channels to specified channel\n"
-            "`.back` - Rolls back the last move action (move/moveall/servermoveall)\n"
-            "\n**Examples:**\n"
-            "`.moveall 123456789012345678`\n"
-            "`.move 987654321098765432 123456789012345678`\n"
-            "`.servermoveall 123456789012345678`\n"
-            "`.back`"
-        ),
-        inline=False
-    )
-    
-    # Kick Commands
-    help_embed.add_field(
-        name="👢 Kick Commands",
-        value=(
-            "`.kick <USER_ID>` - Kicks a specific user from their voice channel\n"
-            "`.kickall` - Kicks all users from your voice channel except yourself\n"
-            "`.serverkickall` - Kicks ALL users from ALL voice channels in the server\n"
-            "\n**Example:**\n"
-            "`.kick 987654321098765432`"
-        ),
-        inline=False
-    )
-    
-    # Authorization Commands
-    help_embed.add_field(
-        name="🔐 Authorization Commands (Bot Owner Only)",
-        value=(
-            "`.auth <USER_ID>` - Authorizes a user to use bot commands\n"
-            "`.deauth <USER_ID>` - Removes a user's authorization\n"
-            "\n**Examples:**\n"
-            "`.auth 987654321098765432`\n"
-            "`.deauth 987654321098765432`"
-        ),
-        inline=False
-    )
-    
-    # Information
-    help_embed.add_field(
-        name="ℹ️ Information",
-        value=(
-            "• All commands (except auth/deauth) require authorization\n"
-            "• Only authorized users can use voice management commands\n"
-            "• Bot owner can authorize/deauthorize users\n"
-            "• Move commands support rollback with `.back`\n"
-            "• Commands provide detailed logs of actions performed"
-        ),
-        inline=False
-    )
-    
-    help_embed.add_field(
-        name="📝 How to get IDs",
-        value=(
-            "**User ID:** Right-click user → Copy User ID\n"
-            "**Channel ID:** Right-click voice channel → Copy Channel ID\n"
-            "*(Developer Mode must be enabled in Discord settings)*"
-        ),
-        inline=False
-    )
-    
-    help_embed.set_footer(text="🔹 User Management Bot | All commands use '.' prefix")
+    help_embed.set_footer(text=HELP_EMBED["footer"])
     
     await ctx.send(embed=help_embed)
 
