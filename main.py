@@ -56,7 +56,7 @@ async def save_authorized_users(authorized_users):
 # Global check for all commands except .auth and .deauth
 @bot.check
 async def check_authorized_user(ctx):
-    if ctx.command.name in ['auth', 'deauth']:  # Skip check for .auth and .deauth
+    if ctx.command.name in ['auth', 'deauth', 'afk']:  # Skip check for .auth, .deauth, and .afk
         return True
     authorized_users = await load_authorized_users()
     if str(ctx.author.id) not in authorized_users:
@@ -591,6 +591,39 @@ async def serverkickall(ctx):
                                      channels_count=channels_affected,
                                      server_name=ctx.guild.name,
                                      server_id=ctx.guild.id))
+
+# Prefix command: .afk (PUBLIC) - Adds [AFK] prefix to caller's nickname
+@bot.command(name="afk", description="Adds [AFK] to the front of your nickname (everyone can use)")
+async def afk(ctx):
+    # Ensure used in a server
+    if ctx.guild is None:
+        await ctx.send("This command can only be used in a server.")
+        return
+
+    prefix = "[AFK] "
+
+    # Determine the base name to apply prefix to
+    current_display = ctx.author.display_name or ctx.author.name
+
+    # If already prefixed, acknowledge and exit
+    if current_display.startswith(prefix):
+        await ctx.send(f"You're already marked as AFK, {ctx.author.mention}.")
+        return
+
+    base_name = ctx.author.nick or ctx.author.name
+    new_nick = prefix + base_name
+
+    # Discord nickname max length is 32 characters
+    if len(new_nick) > 32:
+        new_nick = new_nick[:32]
+
+    try:
+        await ctx.author.edit(nick=new_nick)
+        await ctx.send(f"Set your nickname to '{new_nick}'.")
+    except discord.Forbidden:
+        await ctx.send("I don't have permission to change your nickname.")
+    except discord.HTTPException as e:
+        await ctx.send(f"Failed to set nickname: {e}")
 
 # Remove the default help command first
 bot.remove_command('help')
