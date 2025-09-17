@@ -46,6 +46,10 @@ SUCCESS_MESSAGES = {
     "kicked_users_channel": "Kicked {count} users from #{channel_name} {channel_id}",
     "kicked_users_server": "Kicked {count} users from {channels_count} voice channels in server {server_name} {server_id}",
     
+    # Soundboard controls
+    "soundboard_disabled_channel": "Disabled soundboard in #{channel_name} {channel_id} for everyone",
+    "soundboard_enabled_channel": "Enabled soundboard in #{channel_name} {channel_id} (restored to default)",
+    
     # Authorization
     "user_authorized": "Successfully authorized {username} (ID: {user_id}) to use bot commands!",
     "user_deauthorized": "Successfully deauthorized {username} (ID: {user_id}) from using bot commands!",
@@ -69,7 +73,9 @@ HELP_EMBED = {
             "name": "🔇 Voice Control Commands",
             "value": (
                 "`.muteall` - Mutes all members in your voice channel except yourself\n"
-                "`.unmuteall` - Unmutes all members in your voice channel except yourself"
+                "`.unmuteall` - Unmutes all members in your voice channel except yourself\n"
+                "`.nosb` - Disables soundboard usage for everyone in your current voice channel\n"
+                "`.dosb` - Re-enables soundboard usage (restore defaults) in your current voice channel"
             ),
             "inline": False
         },

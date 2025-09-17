@@ -56,7 +56,7 @@ async def save_authorized_users(authorized_users):
 # Global check for all commands except .auth and .deauth
 @bot.check
 async def check_authorized_user(ctx):
-    if ctx.command.name in ['auth', 'deauth', 'afk']:  # Skip check for .auth, .deauth, and .afk
+    if ctx.command.name in ['auth', 'deauth']:  # Skip check for .auth and .deauth
         return True
     authorized_users = await load_authorized_users()
     if str(ctx.author.id) not in authorized_users:
@@ -116,6 +116,47 @@ async def unmuteall(ctx):
                 return
 
     await ctx.send(get_success_message("unmuted_users", count=members_unmuted, channel_name=voice_channel.name))
+
+# Prefix command: .nosb (disable soundboard in the issuer's current voice channel)
+@bot.command(name="nosb", description="Disables soundboard for everyone in your current voice channel")
+async def nosb(ctx):
+    if not ctx.author.voice or not ctx.author.voice.channel:
+        await ctx.send(get_error_message("not_in_voice"))
+        return
+
+    channel = ctx.author.voice.channel
+    everyone_role = ctx.guild.default_role
+
+    try:
+        overwrite = channel.overwrites_for(everyone_role)
+        overwrite.use_soundboard = False
+        await channel.set_permissions(everyone_role, overwrite=overwrite)
+        await ctx.send(get_success_message("soundboard_disabled_channel", channel_name=channel.name, channel_id=channel.id))
+    except discord.Forbidden:
+        await ctx.send(get_error_message("missing_permissions", action="update permissions for", member_name="@everyone"))
+    except discord.HTTPException as e:
+        await ctx.send(get_error_message("http_error", action="updating permissions for", member_name="@everyone", error=e))
+
+# Prefix command: .dosb (enable/restores soundboard in the issuer's current voice channel)
+@bot.command(name="dosb", description="Re-enables soundboard (restore defaults) in your current voice channel")
+async def dosb(ctx):
+    if not ctx.author.voice or not ctx.author.voice.channel:
+        await ctx.send(get_error_message("not_in_voice"))
+        return
+
+    channel = ctx.author.voice.channel
+    everyone_role = ctx.guild.default_role
+
+    try:
+        overwrite = channel.overwrites_for(everyone_role)
+        # Set to None to clear explicit deny/allow and restore server default
+        overwrite.use_soundboard = None
+        await channel.set_permissions(everyone_role, overwrite=overwrite)
+        await ctx.send(get_success_message("soundboard_enabled_channel", channel_name=channel.name, channel_id=channel.id))
+    except discord.Forbidden:
+        await ctx.send(get_error_message("missing_permissions", action="update permissions for", member_name="@everyone"))
+    except discord.HTTPException as e:
+        await ctx.send(get_error_message("http_error", action="updating permissions for", member_name="@everyone", error=e))
 
 # Prefix command: .auth USERID
 @bot.command(name="auth", description="Authorizes a user to use bot commands (restricted to bot owner)")
@@ -591,39 +632,6 @@ async def serverkickall(ctx):
                                      channels_count=channels_affected,
                                      server_name=ctx.guild.name,
                                      server_id=ctx.guild.id))
-
-# Prefix command: .afk (PUBLIC) - Adds [AFK] prefix to caller's nickname
-@bot.command(name="afk", description="Adds [AFK] to the front of your nickname (everyone can use)")
-async def afk(ctx):
-    # Ensure used in a server
-    if ctx.guild is None:
-        await ctx.send("This command can only be used in a server.")
-        return
-
-    prefix = "[AFK] "
-
-    # Determine the base name to apply prefix to
-    current_display = ctx.author.display_name or ctx.author.name
-
-    # If already prefixed, acknowledge and exit
-    if current_display.startswith(prefix):
-        await ctx.send(f"You're already marked as AFK, {ctx.author.mention}.")
-        return
-
-    base_name = ctx.author.nick or ctx.author.name
-    new_nick = prefix + base_name
-
-    # Discord nickname max length is 32 characters
-    if len(new_nick) > 32:
-        new_nick = new_nick[:32]
-
-    try:
-        await ctx.author.edit(nick=new_nick)
-        await ctx.send(f"Set your nickname to '{new_nick}'.")
-    except discord.Forbidden:
-        await ctx.send("I don't have permission to change your nickname.")
-    except discord.HTTPException as e:
-        await ctx.send(f"Failed to set nickname: {e}")
 
 # Remove the default help command first
 bot.remove_command('help')
