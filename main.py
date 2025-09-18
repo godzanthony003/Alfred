@@ -27,7 +27,11 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Bot is running!")
 
 def run_web():
-    server = HTTPServer(("0.0.0.0", 8000), SimpleHandler)
+    try:
+        port = int(os.getenv("PORT", "8000"))
+    except Exception:
+        port = 8000
+    server = HTTPServer(("0.0.0.0", port), SimpleHandler)
     server.serve_forever()
 
 # Start the web server in the background
@@ -36,7 +40,8 @@ threading.Thread(target=run_web, daemon=True).start()
 def self_ping():
     while True:
         try:
-            urlopen("http://127.0.0.1:8000/", timeout=5).read()
+            port = os.getenv("PORT", "8000")
+            urlopen(f"http://127.0.0.1:{port}/", timeout=5).read()
         except Exception:
             pass
         time.sleep(240)
@@ -48,6 +53,10 @@ def external_keepalive():
         "https://www.google.com/generate_204",
         "https://cloudflare.com/cdn-cgi/trace"
     ]
+    # Optionally include your own public URL so the platform router sees inbound traffic
+    keepalive_url = os.getenv("KEEPALIVE_URL")
+    if keepalive_url:
+        urls.insert(0, keepalive_url.rstrip("/"))
     while True:
         for u in urls:
             try:
