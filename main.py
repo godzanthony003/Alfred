@@ -3,6 +3,7 @@ from discord.ext import commands
 import os
 import json
 import aiofiles
+import socket
 from dotenv import load_dotenv
 
 # Import messages from separate file
@@ -30,6 +31,19 @@ def run_web():
 
 # Start the web server in the background
 threading.Thread(target=run_web, daemon=True).start()
+
+def self_ping():
+    import socket
+    import time
+    while True:
+        try:
+            s = socket.create_connection(("127.0.0.1", 1), timeout=1)
+            s.close()
+        except:
+            pass
+        time.sleep(240)
+
+threading.Thread(target=self_ping, daemon=True).start()
 
 # Load environment variables from .env file
 load_dotenv()
