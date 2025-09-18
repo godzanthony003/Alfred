@@ -13,6 +13,24 @@ from messages import (
     HELP_EMBED
 )
 
+# --- Minimal web server for Koyeb health check ---
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+class SimpleHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Bot is running!")
+
+def run_web():
+    server = HTTPServer(("0.0.0.0", 8000), SimpleHandler)
+    server.serve_forever()
+
+# Start the web server in the background
+threading.Thread(target=run_web, daemon=True).start()
+
 # Load environment variables from .env file
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
