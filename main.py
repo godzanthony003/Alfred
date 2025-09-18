@@ -6,6 +6,8 @@ import aiofiles
 from dotenv import load_dotenv
 import time
 from urllib.request import urlopen, Request
+import re
+import difflib
 
 # Import messages from separate file
 from messages import (
@@ -97,6 +99,72 @@ def log_command(author, command_name, details):
             print(f"! [unknown] triggered .{command_name} | {details}")
         except Exception:
             pass
+
+# --- Voice channel resolution helper ---
+def _normalize_channel_name(name: str):
+    try:
+        # Lowercase and strip non-alphanumeric for loose matching
+        return re.sub(r"[^a-z0-9]", "", name.lower())
+    except Exception:
+        return name.lower()
+
+def resolve_voice_channel_by_query(guild: discord.Guild, query: str):
+    """Resolve a voice channel by ID or fuzzy name within the given guild.
+
+    Returns a discord.VoiceChannel or raises ValueError if not found/invalid.
+    """
+    if not query:
+        raise ValueError("empty_query")
+
+    # Try numeric ID first
+    try:
+        channel_id = int(query)
+        channel = guild.get_channel(channel_id)
+        if isinstance(channel, discord.VoiceChannel):
+            return channel
+    except Exception:
+        pass
+
+    # Fuzzy match by name among voice channels
+    voice_channels = [c for c in guild.channels if isinstance(c, discord.VoiceChannel)]
+    if not voice_channels:
+        raise ValueError("no_voice_channels")
+
+    normalized_query = _normalize_channel_name(query)
+
+    # Calculate scores: exact (case-insensitive), startswith, contains, normalized contains, sequence ratio
+    best_channel = None
+    best_score = 0.0
+    for ch in voice_channels:
+        name = ch.name
+        name_lower = name.lower()
+        norm_name = _normalize_channel_name(name)
+
+        score = 0.0
+        if name_lower == query.lower():
+            score = 1.0
+        elif name_lower.startswith(query.lower()):
+            score = 0.95
+        elif query.lower() in name_lower:
+            score = 0.9
+        elif normalized_query and normalized_query in norm_name:
+            score = 0.85
+        else:
+            try:
+                score = difflib.SequenceMatcher(a=normalized_query, b=norm_name).ratio() * 0.8
+            except Exception:
+                score = 0.0
+
+        # Slight tie-breaker: prefer channels with more members when scores close
+        if score > best_score or (abs(score - best_score) < 0.02 and best_channel and len(ch.members) > len(best_channel.members)):
+            best_score = score
+            best_channel = ch
+
+    # Require a minimal threshold to avoid wild mismatches
+    if best_channel and best_score >= 0.6:
+        return best_channel
+
+    raise ValueError("not_found")
 
 # Load authorized users from JSON file or use default
 async def load_authorized_users():
@@ -342,7 +410,7 @@ async def deauth(ctx, user_id: str):
 
 # Prefix command: .moveall CHANNELID (UPDATED WITH ROLLBACK SUPPORT)
 @bot.command(name="moveall", description="Moves all members from the user's voice channel to the specified channel")
-async def moveall(ctx, channel_id: str):
+async def moveall(ctx, channel: str):
     global last_move_action
     
     if not ctx.author.voice or not ctx.author.voice.channel:
@@ -350,30 +418,22 @@ async def moveall(ctx, channel_id: str):
         await ctx.send(get_error_message("not_in_voice"))
         return
 
-    # Validate channel_id
+    # Resolve destination channel by ID or fuzzy name
     try:
-        channel_id = int(channel_id)
-    except ValueError:
-        log_command(ctx.author, 'moveall', 'failed | Reason: invalid channel id')
-        await ctx.send(get_error_message("invalid_channel_id"))
-        return
-
-    # Get the destination channel
-    try:
-        destination_channel = bot.get_channel(channel_id)
-        if not destination_channel:
-            destination_channel = await bot.fetch_channel(channel_id)
-        
+        destination_channel = resolve_voice_channel_by_query(ctx.guild, channel)
         if not isinstance(destination_channel, discord.VoiceChannel):
             log_command(ctx.author, 'moveall', 'failed | Reason: destination is not a voice channel')
             await ctx.send(get_error_message("not_voice_channel"))
             return
-    except discord.NotFound:
-        log_command(ctx.author, 'moveall', f"failed | Channel not found: {channel_id}")
-        await ctx.send(get_error_message("channel_not_found", channel_id=channel_id))
+    except ValueError as ve:
+        if str(ve) == "no_voice_channels":
+            await ctx.send(get_error_message("no_voice_channels"))
+        else:
+            await ctx.send(get_error_message("channel_not_found_query", query=channel))
+        log_command(ctx.author, 'moveall', f"failed | Channel not found from query: {channel}")
         return
     except discord.HTTPException as e:
-        log_command(ctx.author, 'moveall', f"failed | HTTP error while fetching channel {channel_id}: {e}")
+        log_command(ctx.author, 'moveall', f"failed | HTTP error while resolving channel '{channel}': {e}")
         await ctx.send(get_error_message("fetch_error", type="channel", error=e))
         return
 
@@ -422,123 +482,27 @@ async def moveall(ctx, channel_id: str):
     )
     log_command(ctx.author, 'moveall', details)
 
-# Prefix command: .move USERID CHANNELID (UPDATED WITH ROLLBACK SUPPORT)
-@bot.command(name="move", description="Moves a specific user to the specified voice channel")
-async def move(ctx, user_id: str, channel_id: str):
-    global last_move_action
-    
-    # Validate user_id
-    try:
-        user_id = int(user_id)
-    except ValueError:
-        log_command(ctx.author, 'move', 'failed | Reason: invalid user id')
-        await ctx.send(get_error_message("invalid_user_id"))
-        return
-
-    # Validate channel_id
-    try:
-        channel_id = int(channel_id)
-    except ValueError:
-        log_command(ctx.author, 'move', 'failed | Reason: invalid channel id')
-        await ctx.send(get_error_message("invalid_channel_id"))
-        return
-
-    # Get the user
-    try:
-        member = ctx.guild.get_member(user_id)
-        if not member:
-            member = await ctx.guild.fetch_member(user_id)
-    except discord.NotFound:
-        log_command(ctx.author, 'move', f"failed | User not found: {user_id}")
-        await ctx.send(get_error_message("user_not_found", user_id=user_id))
-        return
-    except discord.HTTPException as e:
-        log_command(ctx.author, 'move', f"failed | HTTP error while fetching user {user_id}: {e}")
-        await ctx.send(get_error_message("fetch_error", type="user", error=e))
-        return
-
-    # Check if user is in a voice channel
-    if not member.voice or not member.voice.channel:
-        log_command(ctx.author, 'move', f"failed | Target not in voice: {member.name}")
-        await ctx.send(get_error_message("user_not_in_voice", member_name=member.name))
-        return
-
-    # Get the destination channel
-    try:
-        destination_channel = bot.get_channel(channel_id)
-        if not destination_channel:
-            destination_channel = await bot.fetch_channel(channel_id)
-        
-        if not isinstance(destination_channel, discord.VoiceChannel):
-            log_command(ctx.author, 'move', 'failed | Reason: destination is not a voice channel')
-            await ctx.send(get_error_message("not_voice_channel"))
-            return
-    except discord.NotFound:
-        log_command(ctx.author, 'move', f"failed | Channel not found: {channel_id}")
-        await ctx.send(get_error_message("channel_not_found", channel_id=channel_id))
-        return
-    except discord.HTTPException as e:
-        log_command(ctx.author, 'move', f"failed | HTTP error while fetching channel {channel_id}: {e}")
-        await ctx.send(get_error_message("fetch_error", type="channel", error=e))
-        return
-
-    # Move the user
-    try:
-        source_channel = member.voice.channel
-        
-        # Store the move action for potential rollback
-        last_move_action = {
-            'type': 'move',
-            'user_positions': {member.id: source_channel.id},
-            'destination_channel_id': destination_channel.id,
-            'guild_id': ctx.guild.id
-        }
-        
-        await member.move_to(destination_channel)
-        await ctx.send(get_success_message("moved_user",
-                                         member_name=member.name,
-                                         member_id=member.id,
-                                         source_name=source_channel.name,
-                                         source_id=source_channel.id,
-                                         dest_name=destination_channel.name,
-                                         dest_id=destination_channel.id))
-        log_command(ctx.author, 'move', f"success | Moved {member.name} ({member.id}) from {source_channel.name} -> {destination_channel.name}")
-    except discord.Forbidden:
-        log_command(ctx.author, 'move', f"failed | Missing permissions to move {member.name}")
-        await ctx.send(get_error_message("missing_permissions", action="move", member_name=member.name))
-    except discord.HTTPException as e:
-        log_command(ctx.author, 'move', f"failed | HTTP error while moving {member.name}: {e}")
-        await ctx.send(get_error_message("http_error", action="moving", member_name=member.name, error=e))
-
 # Prefix command: .servermoveall CHANNELID (NEW)
 @bot.command(name="servermoveall", description="Moves all users from all voice channels in the server to the specified channel")
-async def servermoveall(ctx, channel_id: str):
+async def servermoveall(ctx, channel: str):
     global last_move_action
     
-    # Validate channel_id
+    # Resolve destination channel by ID or fuzzy name
     try:
-        channel_id = int(channel_id)
-    except ValueError:
-        log_command(ctx.author, 'servermoveall', 'failed | Reason: invalid channel id')
-        await ctx.send(get_error_message("invalid_channel_id"))
-        return
-
-    # Get the destination channel
-    try:
-        destination_channel = bot.get_channel(channel_id)
-        if not destination_channel:
-            destination_channel = await bot.fetch_channel(channel_id)
-        
+        destination_channel = resolve_voice_channel_by_query(ctx.guild, channel)
         if not isinstance(destination_channel, discord.VoiceChannel):
             log_command(ctx.author, 'servermoveall', 'failed | Reason: destination is not a voice channel')
             await ctx.send(get_error_message("not_voice_channel"))
             return
-    except discord.NotFound:
-        log_command(ctx.author, 'servermoveall', f"failed | Channel not found: {channel_id}")
-        await ctx.send(get_error_message("channel_not_found", channel_id=channel_id))
+    except ValueError as ve:
+        if str(ve) == "no_voice_channels":
+            await ctx.send(get_error_message("no_voice_channels"))
+        else:
+            await ctx.send(get_error_message("channel_not_found_query", query=channel))
+        log_command(ctx.author, 'servermoveall', f"failed | Channel not found from query: {channel}")
         return
     except discord.HTTPException as e:
-        log_command(ctx.author, 'servermoveall', f"failed | HTTP error while fetching channel {channel_id}: {e}")
+        log_command(ctx.author, 'servermoveall', f"failed | HTTP error while resolving channel '{channel}': {e}")
         await ctx.send(get_error_message("fetch_error", type="channel", error=e))
         return
 
@@ -635,10 +599,15 @@ async def back(ctx):
             # Get the member
             member = ctx.guild.get_member(user_id)
             if not member:
+                log_command(ctx.author, 'back', f"skip | Member not in guild anymore: {user_id}")
                 continue  # Skip if member is no longer in the guild
             
             # Check if member is still in the destination channel
-            if not member.voice or member.voice.channel.id != previous_destination.id:
+            if not member.voice:
+                log_command(ctx.author, 'back', f"skip | Member disconnected: {member.name} ({member.id})")
+                continue  # Skip if member disconnected
+            if member.voice.channel.id != previous_destination.id:
+                log_command(ctx.author, 'back', f"skip | Member not in destination: {member.name} ({member.id})")
                 continue  # Skip if member is no longer in the destination channel
             
             # Get the original channel
@@ -663,6 +632,7 @@ async def back(ctx):
             await ctx.send(get_error_message("http_error", action="moving", member_name=member.name, error=e))
             return
         except (discord.NotFound, AttributeError):
+            log_command(ctx.author, 'back', f"skip | Channel or member not found for user {user_id}")
             continue  # Skip if channel or member not found
     
     channels_affected = len(channels_moved_to)
@@ -672,54 +642,6 @@ async def back(ctx):
     
     await ctx.send(get_success_message("rollback_success", count=members_moved_back, channels_count=channels_affected))
     log_command(ctx.author, 'back', f"success | Members moved back: {members_moved_back} | Channels affected: {channels_affected}")
-
-# Prefix command: .kick USERID
-@bot.command(name="kick", description="Kicks a specific user from their voice channel")
-async def kick(ctx, user_id: str):
-    # Validate user_id
-    try:
-        user_id = int(user_id)
-    except ValueError:
-        log_command(ctx.author, 'kick', 'failed | Reason: invalid user id')
-        await ctx.send(get_error_message("invalid_user_id"))
-        return
-
-    # Get the user
-    try:
-        member = ctx.guild.get_member(user_id)
-        if not member:
-            member = await ctx.guild.fetch_member(user_id)
-    except discord.NotFound:
-        log_command(ctx.author, 'kick', f"failed | User not found: {user_id}")
-        await ctx.send(get_error_message("user_not_found", user_id=user_id))
-        return
-    except discord.HTTPException as e:
-        log_command(ctx.author, 'kick', f"failed | HTTP error while fetching user {user_id}: {e}")
-        await ctx.send(get_error_message("fetch_error", type="user", error=e))
-        return
-
-    # Check if user is in a voice channel
-    if not member.voice or not member.voice.channel:
-        log_command(ctx.author, 'kick', f"failed | Target not in voice: {member.name}")
-        await ctx.send(get_error_message("user_not_in_voice", member_name=member.name))
-        return
-
-    # Kick the user from voice channel
-    try:
-        source_channel = member.voice.channel
-        await member.move_to(None)  # None disconnects them
-        await ctx.send(get_success_message("kicked_user",
-                                         member_name=member.name,
-                                         member_id=member.id,
-                                         channel_name=source_channel.name,
-                                         channel_id=source_channel.id))
-        log_command(ctx.author, 'kick', f"success | Kicked {member.name} ({member.id}) from {source_channel.name} ({source_channel.id})")
-    except discord.Forbidden:
-        log_command(ctx.author, 'kick', f"failed | Missing permissions to kick {member.name}")
-        await ctx.send(get_error_message("missing_permissions", action="kick", member_name=member.name))
-    except discord.HTTPException as e:
-        log_command(ctx.author, 'kick', f"failed | HTTP error while kicking {member.name}: {e}")
-        await ctx.send(get_error_message("http_error", action="kicking", member_name=member.name, error=e))
 
 # Prefix command: .kickall
 @bot.command(name="kickall", description="Kicks all members from the user's voice channel except themselves")

@@ -12,6 +12,7 @@ ERROR_MESSAGES = {
     "user_not_found": "User with ID {user_id} not found in this server!",
     "user_not_found_global": "User with ID {user_id} not found!",
     "channel_not_found": "Voice channel with ID {channel_id} not found!",
+    "channel_not_found_query": "Voice channel not found for query: '{query}'. Try a closer name or the ID.",
     "not_voice_channel": "The specified channel is not a voice channel!",
     "user_not_in_voice": "{member_name} is not in a voice channel!",
     "no_voice_channels": "No voice channels found in this server!",
@@ -82,14 +83,13 @@ HELP_EMBED = {
         {
             "name": "🔄 Move Commands",
             "value": (
-                "`.moveall <CHANNEL_ID>` - Moves ALL users (including yourself) from your voice channel to specified channel\n"
-                "`.move <USER_ID> <CHANNEL_ID>` - Moves a specific user to specified voice channel\n"
-                "`.servermoveall <CHANNEL_ID>` - Moves ALL users from ALL voice channels to specified channel\n"
-                "`.back` - Rolls back the last move action (move/moveall/servermoveall)\n"
+                "`.moveall <CHANNEL>` - Move ALL users in your voice channel to the given channel (accepts ID or fuzzy name)\n"
+                "`.servermoveall <CHANNEL>` - Move ALL users from ALL voice channels to the given channel (accepts ID or fuzzy name)\n"
+                "`.back` - Roll back the last move action (moveall/servermoveall)\n"
                 "\n**Examples:**\n"
                 "`.moveall 123456789012345678`\n"
-                "`.move 987654321098765432 123456789012345678`\n"
-                "`.servermoveall 123456789012345678`\n"
+                "`.moveall alobby`\n"
+                "`.servermoveall A | Lobby`\n"
                 "`.back`"
             ),
             "inline": False
@@ -97,11 +97,8 @@ HELP_EMBED = {
         {
             "name": "👢 Kick Commands",
             "value": (
-                "`.kick <USER_ID>` - Kicks a specific user from their voice channel\n"
                 "`.kickall` - Kicks all users from your voice channel except yourself\n"
-                "`.serverkickall` - Kicks ALL users from ALL voice channels in the server\n"
-                "\n**Example:**\n"
-                "`.kick 987654321098765432`"
+                "`.serverkickall` - Kicks ALL users from ALL voice channels in the server"
             ),
             "inline": False
         },
@@ -128,11 +125,10 @@ HELP_EMBED = {
             "inline": False
         },
         {
-            "name": "📝 How to get IDs",
+            "name": "📝 Tips",
             "value": (
-                "**User ID:** Right-click user → Copy User ID\n"
-                "**Channel ID:** Right-click voice channel → Copy Channel ID\n"
-                "*(Developer Mode must be enabled in Discord settings)*"
+                "• You can use channel IDs or approximate names (e.g., 'alobby' → 'A | Lobby')\n"
+                "• For exact matches, prefer using the ID"
             ),
             "inline": False
         }
