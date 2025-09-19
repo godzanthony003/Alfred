@@ -166,6 +166,88 @@ def resolve_voice_channel_by_query(guild: discord.Guild, query: str):
 
     raise ValueError("not_found")
 
+# --- Member resolution helper ---
+def _extract_id_from_mention(query: str):
+    try:
+        match = re.match(r"^<@!?(\d+)>$", query.strip())
+        if match:
+            return int(match.group(1))
+    except Exception:
+        return None
+    return None
+
+def resolve_member_by_query(guild: discord.Guild, query: str):
+    """Resolve a member by mention, ID or fuzzy display/name within the given guild.
+
+    Returns a discord.Member or raises ValueError if not found/invalid.
+    """
+    if not query:
+        raise ValueError("empty_query")
+
+    # Try mention format
+    mention_id = _extract_id_from_mention(query)
+    if mention_id is not None:
+        member = guild.get_member(mention_id)
+        if isinstance(member, discord.Member):
+            return member
+
+    # Try numeric ID
+    try:
+        member_id = int(query)
+        member = guild.get_member(member_id)
+        if isinstance(member, discord.Member):
+            return member
+    except Exception:
+        pass
+
+    # Fuzzy match among members by display name and username
+    members = list(guild.members)
+    if not members:
+        raise ValueError("no_members")
+
+    normalized_query = _normalize_channel_name(query)
+
+    best_member = None
+    best_score = 0.0
+
+    for m in members:
+        names_to_check = [getattr(m, "display_name", ""), getattr(m, "name", ""), getattr(m, "nick", "") or ""]
+        score_for_member = 0.0
+        for name in names_to_check:
+            if not name:
+                continue
+            name_lower = name.lower()
+            norm_name = _normalize_channel_name(name)
+
+            score = 0.0
+            if name_lower == query.lower():
+                score = 1.0
+            elif name_lower.startswith(query.lower()):
+                score = 0.95
+            elif query.lower() in name_lower:
+                score = 0.9
+            elif normalized_query and normalized_query in norm_name:
+                score = 0.85
+            else:
+                try:
+                    score = difflib.SequenceMatcher(a=normalized_query, b=norm_name).ratio() * 0.8
+                except Exception:
+                    score = 0.0
+
+            score_for_member = max(score_for_member, score)
+
+        # Slight tie-breaker: prefer members currently in voice or with roles when close
+        if score_for_member > best_score or (
+            abs(score_for_member - best_score) < 0.02 and best_member and len(m.roles) > len(best_member.roles)
+        ):
+            best_score = score_for_member
+            best_member = m
+
+    if best_member and best_score >= 0.6:
+        return best_member
+
+    raise ValueError("not_found")
+
 # Load authorized users from JSON file or use default
 async def load_authorized_users():
     try:
@@ -722,6 +804,50 @@ async def serverkickall(ctx):
         f" | Channels affected: {channels_affected}"
     )
     log_command(ctx.author, 'serverkickall', details)
+
+# Prefix command: .nick <USER> <NEW_NICK>
+@bot.command(name="nick", description="Change a member's server nickname by mention/ID/fuzzy name")
+async def nick(ctx, current_name: str, *, new_nick: str = None):
+    # Resolve member by mention, ID, or fuzzy name
+    try:
+        member = resolve_member_by_query(ctx.guild, current_name)
+    except ValueError as ve:
+        if str(ve) in ("no_members", "empty_query", "not_found"):
+            await ctx.send(get_error_message("member_not_found_query", query=current_name))
+        else:
+            await ctx.send(get_error_message("member_not_found_query", query=current_name))
+        log_command(ctx.author, 'nick', f"failed | Member not found from query: {current_name}")
+        return
+
+    # Prevent changing own nick via this command to reduce accidents
+    if member.id == ctx.author.id:
+        log_command(ctx.author, 'nick', 'failed | Attempted to change own nickname')
+        await ctx.send(get_error_message("cannot_change_own_nick"))
+        return
+
+    # Interpret missing second arg or '-' as clear/remove nickname
+    if new_nick is None:
+        desired_nick = None
+    else:
+        desired_nick = None if new_nick.strip() == '-' else new_nick.strip()
+    if desired_nick is not None and len(desired_nick) == 0:
+        await ctx.send(get_error_message("invalid_nickname"))
+        return
+
+    try:
+        await member.edit(nick=desired_nick)
+        if desired_nick is None:
+            await ctx.send(get_success_message("nickname_cleared", member_name=member.display_name, member_id=member.id))
+            log_command(ctx.author, 'nick', f"success | Cleared nickname for {member.name} ({member.id})")
+        else:
+            await ctx.send(get_success_message("nickname_changed", member_name=member.display_name, member_id=member.id, new_nick=desired_nick))
+            log_command(ctx.author, 'nick', f"success | Changed nickname for {member.name} ({member.id}) to '{desired_nick}'")
+    except discord.Forbidden:
+        log_command(ctx.author, 'nick', f"failed | Missing permissions to change nick for {member.name}")
+        await ctx.send(get_error_message("missing_permissions", action="change nickname for", member_name=member.display_name))
+    except discord.HTTPException as e:
+        log_command(ctx.author, 'nick', f"failed | HTTP error while changing nick for {member.name}: {e}")
+        await ctx.send(get_error_message("http_error", action="changing nickname for", member_name=member.display_name, error=e))
 
 # Remove the default help command first
 bot.remove_command('help')

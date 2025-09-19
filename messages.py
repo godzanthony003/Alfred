@@ -25,7 +25,10 @@ ERROR_MESSAGES = {
     "user_not_authorized": "User with ID {user_id} is not authorized!",
     "no_rollback_data": "No move action to rollback!",
     "rollback_different_server": "The last move action was performed in a different server!",
-    "rollback_channel_not_found": "Cannot find the previous destination channel for rollback!"
+    "rollback_channel_not_found": "Cannot find the previous destination channel for rollback!",
+    "member_not_found_query": "Member not found for query: '{query}'. Try a closer name, mention, or ID.",
+    "invalid_nickname": "Invalid nickname. Please provide a non-empty nickname.",
+    "cannot_change_own_nick": "You cannot change your own nickname with this command."
 }
 
 # =============================================================================
@@ -56,7 +59,10 @@ SUCCESS_MESSAGES = {
     "user_deauthorized": "Successfully deauthorized {username} (ID: {user_id}) from using bot commands!",
     
     # Rollback
-    "rollback_success": "Rolled back! Moved {count} users back to {channels_count} original voice channels"
+    "rollback_success": "Rolled back! Moved {count} users back to {channels_count} original voice channels",
+    # Nickname
+    "nickname_changed": "Changed nickname for @{member_name} {member_id} to '{new_nick}'",
+    "nickname_cleared": "Cleared nickname for @{member_name} {member_id}"
 }
 
 # =============================================================================
@@ -99,6 +105,18 @@ HELP_EMBED = {
             "value": (
                 "`.kickall` - Kicks all users from your voice channel except yourself\n"
                 "`.serverkickall` - Kicks ALL users from ALL voice channels in the server"
+            ),
+            "inline": False
+        },
+        {
+            "name": "👤 Nickname Commands",
+            "value": (
+                "`.nick <USER> <NEW_NICK>` - Change a member's server nickname. `<USER>` can be a mention, ID, or fuzzy display/name. Use `-` or omit `<NEW_NICK>` to clear.\n"
+                "\n**Examples:**\n"
+                "`.nick aion godslayer`\n"
+                "`.nick @Aion Godslayer`\n"
+                "`.nick 123456789012345678 -` (clear nick)\n"
+                "`.nick aion` (clear nick)"
             ),
             "inline": False
         },
