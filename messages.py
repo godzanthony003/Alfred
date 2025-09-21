@@ -28,7 +28,9 @@ ERROR_MESSAGES = {
     "rollback_channel_not_found": "Cannot find the previous destination channel for rollback!",
     "member_not_found_query": "Member not found for query: '{query}'. Try a closer name, mention, or ID.",
     "invalid_nickname": "Invalid nickname. Please provide a non-empty nickname.",
-    "cannot_change_own_nick": "You cannot change your own nickname with this command."
+    "cannot_change_own_nick": "You cannot change your own nickname with this command.",
+    "no_user_ids_provided": "No user IDs provided! Usage: `.massban USERID USERID USERID...`",
+    "massban_failed": "Mass ban failed! {failed_count} user(s) could not be banned: {failed_names}"
 }
 
 # =============================================================================
@@ -62,7 +64,10 @@ SUCCESS_MESSAGES = {
     "rollback_success": "Rolled back! Moved {count} users back to {channels_count} original voice channels",
     # Nickname
     "nickname_changed": "Changed nickname for @{member_name} {member_id} to '{new_nick}'",
-    "nickname_cleared": "Cleared nickname for @{member_name} {member_id}"
+    "nickname_cleared": "Cleared nickname for @{member_name} {member_id}",
+    # Mass ban
+    "massban_success": "Successfully banned {count} user(s): {usernames}",
+    "massban_partial": "Partially successful! Banned {banned_count} user(s): {banned_names}\nFailed to ban {failed_count} user(s): {failed_names}"
 }
 
 # =============================================================================
@@ -105,6 +110,16 @@ HELP_EMBED = {
             "value": (
                 "`.kickall` - Kicks all users from your voice channel except yourself\n"
                 "`.serverkickall` - Kicks ALL users from ALL voice channels in the server"
+            ),
+            "inline": False
+        },
+        {
+            "name": "🔨 Ban Commands",
+            "value": (
+                "`.massban <USERID> <USERID> <USERID>...` - Bans multiple users from the server by their user IDs\n"
+                "\n**Examples:**\n"
+                "`.massban 123456789012345678 987654321098765432`\n"
+                "`.massban 111111111111111111 222222222222222222 333333333333333333`"
             ),
             "inline": False
         },

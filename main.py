@@ -852,6 +852,96 @@ async def nick(ctx, current_name: str, *, new_nick: str = None):
 # Remove the default help command first
 bot.remove_command('help')
 
+# Prefix command: .massban USERID USERID USERID...
+@bot.command(name="massban", description="Bans multiple users from the server by their user IDs")
+async def massban(ctx, *user_ids):
+    if not user_ids:
+        log_command(ctx.author, 'massban', 'failed | Reason: no user IDs provided')
+        await ctx.send(get_error_message("no_user_ids_provided"))
+        return
+    
+    banned_count = 0
+    failed_count = 0
+    banned_names = []
+    failed_users = []
+    
+    for user_id_str in user_ids:
+        # Validate user_id
+        try:
+            user_id = int(user_id_str)
+        except ValueError:
+            log_command(ctx.author, 'massban', f"failed | Invalid user ID: {user_id_str}")
+            failed_count += 1
+            failed_users.append(f"{user_id_str} (invalid ID)")
+            continue
+        
+        # Fetch the user to get their username
+        try:
+            user = await bot.fetch_user(user_id)
+            username = user.name
+        except discord.NotFound:
+            log_command(ctx.author, 'massban', f"failed | User not found: {user_id}")
+            failed_count += 1
+            failed_users.append(f"{user_id} (not found)")
+            continue
+        except discord.HTTPException as e:
+            log_command(ctx.author, 'massban', f"failed | HTTP error while fetching user {user_id}: {e}")
+            failed_count += 1
+            failed_users.append(f"{user_id} (fetch error)")
+            continue
+        
+        # Check if user is in the server
+        member = ctx.guild.get_member(user_id)
+        if not member:
+            log_command(ctx.author, 'massban', f"failed | User {username} ({user_id}) not in server")
+            failed_count += 1
+            failed_users.append(f"{username} ({user_id}) - not in server")
+            continue
+        
+        # Prevent banning the command issuer
+        if member.id == ctx.author.id:
+            log_command(ctx.author, 'massban', f"failed | Cannot ban self: {username} ({user_id})")
+            failed_count += 1
+            failed_users.append(f"{username} ({user_id}) - cannot ban self")
+            continue
+        
+        # Prevent banning the bot owner
+        if member.id == 539464122027343873:
+            log_command(ctx.author, 'massban', f"failed | Cannot ban bot owner: {username} ({user_id})")
+            failed_count += 1
+            failed_users.append(f"{username} ({user_id}) - cannot ban bot owner")
+            continue
+        
+        # Attempt to ban the user
+        try:
+            await member.ban(reason=f"Mass ban by {ctx.author.name} ({ctx.author.id})")
+            banned_count += 1
+            banned_names.append(f"{username} ({user_id})")
+            log_command(ctx.author, 'massban', f"success | Banned {username} ({user_id})")
+        except discord.Forbidden:
+            log_command(ctx.author, 'massban', f"failed | Missing permissions to ban {username} ({user_id})")
+            failed_count += 1
+            failed_users.append(f"{username} ({user_id}) - missing permissions")
+        except discord.HTTPException as e:
+            log_command(ctx.author, 'massban', f"failed | HTTP error while banning {username} ({user_id}): {e}")
+            failed_count += 1
+            failed_users.append(f"{username} ({user_id}) - HTTP error")
+    
+    # Send result message
+    if banned_count > 0 and failed_count == 0:
+        await ctx.send(get_success_message("massban_success", count=banned_count, usernames=", ".join(banned_names)))
+    elif banned_count > 0 and failed_count > 0:
+        await ctx.send(get_success_message("massban_partial", 
+                                         banned_count=banned_count, 
+                                         failed_count=failed_count,
+                                         banned_names=", ".join(banned_names),
+                                         failed_names=", ".join(failed_users)))
+    else:
+        await ctx.send(get_error_message("massban_failed", failed_count=failed_count, failed_names=", ".join(failed_users)))
+    
+    details = f"Banned: {banned_count} | Failed: {failed_count} | Banned: {', '.join(banned_names) if banned_names else 'none'} | Failed: {', '.join(failed_users) if failed_users else 'none'}"
+    log_command(ctx.author, 'massban', details)
+
 # Prefix command: .help (UPDATED)
 @bot.command(name="help", description="Shows all available commands and their usage")
 async def help_command(ctx):
