@@ -88,6 +88,16 @@ AUTH_FILE = 'authorized_users.json'
 # Global variable to store the last move action for rollback
 last_move_action = None
 
+# --- Global hook: delete the issuer's command message before executing any command ---
+@bot.before_invoke
+async def _delete_invocation(ctx):
+    try:
+        if ctx and ctx.message:
+            await ctx.message.delete()
+    except (discord.Forbidden, discord.HTTPException):
+        # If we cannot delete, ignore silently
+        pass
+
 # --- Console logging helper ---
 def log_command(author, command_name, details):
     try:
@@ -963,6 +973,62 @@ async def help_command(ctx):
     
     await ctx.send(embed=help_embed)
     log_command(ctx.author, 'help', 'success | Help embed sent')
+
+# Prefix command: .mentor (assign role to audience in current Stage channel and announce)
+@bot.command(name="mentor", description="Assegna un ruolo a tutti i partecipanti connessi nel tuo Stage e annuncia i partecipanti")
+async def mentor(ctx):
+    ROLE_ID = 1422365715721224192
+    ANTHONY_ID = 769582403093004288
+
+    # Validate user is connected and in a Stage channel
+    if not ctx.author.voice or not ctx.author.voice.channel or not isinstance(ctx.author.voice.channel, discord.StageChannel):
+        log_command(ctx.author, 'mentor', 'failed | Reason: caller not in a Stage channel')
+        await ctx.send(get_error_message("not_in_stage"))
+        return
+
+    stage_channel: discord.StageChannel = ctx.author.voice.channel
+
+    # Resolve role
+    role = ctx.guild.get_role(ROLE_ID)
+    if role is None:
+        log_command(ctx.author, 'mentor', f'failed | Role not found: {ROLE_ID}')
+        await ctx.send(get_error_message("role_not_found"))
+        return
+
+    # Collect eligible participants: connected members in this Stage, excluding issuer and bots
+    eligible_members = [m for m in stage_channel.members if m.id != ctx.author.id and not getattr(m, 'bot', False)]
+
+    if not eligible_members:
+        log_command(ctx.author, 'mentor', 'failed | No eligible participants')
+        await ctx.send(get_error_message("no_participants"))
+        return
+
+    # Assign role to each eligible member
+    assigned_names = []
+    try:
+        for member in eligible_members:
+            if role not in getattr(member, 'roles', []):
+                await member.add_roles(role, reason=f"Mentorship participation via .mentor by {ctx.author} ({ctx.author.id})")
+            assigned_names.append(member.name)
+    except discord.Forbidden:
+        # Missing Manage Roles or role hierarchy issue
+        log_command(ctx.author, 'mentor', 'failed | Missing permissions to assign role')
+        # Reuse existing error template with action/member_name semantics
+        await ctx.send(get_error_message("missing_permissions", action="assign role to", member_name="participants"))
+        return
+    except discord.HTTPException as e:
+        log_command(ctx.author, 'mentor', f"failed | HTTP error while assigning roles: {e}")
+        await ctx.send(get_error_message("fetch_error", type="roles", error=e))
+        return
+
+    # Build announcement message with mentions
+    mentions_text = " ".join(member.mention for member in eligible_members)
+    anthony_mention = f"<@{ANTHONY_ID}>"
+    announcement = get_success_message("mentor_congrats", mentions=mentions_text, anthony_mention=anthony_mention)
+
+    await ctx.send(announcement)
+    details = f"Participants: {len(eligible_members)} | " + (", ".join(assigned_names) if assigned_names else "none") + f" | Stage: {stage_channel.name} ({stage_channel.id}) | Role: {role.name} ({role.id})"
+    log_command(ctx.author, 'mentor', details)
 
 # Run the bot
 bot.run(TOKEN)

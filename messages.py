@@ -30,7 +30,11 @@ ERROR_MESSAGES = {
     "invalid_nickname": "Invalid nickname. Please provide a non-empty nickname.",
     "cannot_change_own_nick": "You cannot change your own nickname with this command.",
     "no_user_ids_provided": "No user IDs provided! Usage: `.massban USERID USERID USERID...`",
-    "massban_failed": "Mass ban failed! {failed_count} user(s) could not be banned: {failed_names}"
+    "massban_failed": "Mass ban failed! {failed_count} user(s) could not be banned: {failed_names}",
+    # Mentor command
+    "not_in_stage": "You must be connected to a Stage channel to use this command!",
+    "role_not_found": "The role required for mentorship could not be found.",
+    "no_participants": "No eligible participants found in your Stage channel."
 }
 
 # =============================================================================
@@ -67,7 +71,9 @@ SUCCESS_MESSAGES = {
     "nickname_cleared": "Cleared nickname for @{member_name} {member_id}",
     # Mass ban
     "massban_success": "Successfully banned {count} user(s): {usernames}",
-    "massban_partial": "Partially successful! Banned {banned_count} user(s): {banned_names}\nFailed to ban {failed_count} user(s): {failed_names}"
+    "massban_partial": "Partially successful! Banned {banned_count} user(s): {banned_names}\nFailed to ban {failed_count} user(s): {failed_names}",
+    # Mentor command
+    "mentor_congrats": "Congratulazioni! {mentions}\n\nAvete visto la vostra mentorship gratuita!\n\nScrivete in privato ad {anthony_mention} per ulteriori dettagli!"
 }
 
 # =============================================================================
@@ -81,6 +87,13 @@ HELP_EMBED = {
     "footer": "🔹 User Management Bot | All commands use '.' prefix",
     
     "fields": [
+        {
+            "name": "🎓 Mentorship",
+            "value": (
+                "`.mentor` - Assegna un ruolo di partecipazione a tutti gli utenti connessi nel tuo Stage attuale e annuncia i partecipanti."
+            ),
+            "inline": False
+        },
         {
             "name": "🔇 Voice Control Commands",
             "value": (
