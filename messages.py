@@ -73,7 +73,7 @@ SUCCESS_MESSAGES = {
     "massban_success": "Successfully banned {count} user(s): {usernames}",
     "massban_partial": "Partially successful! Banned {banned_count} user(s): {banned_names}\nFailed to ban {failed_count} user(s): {failed_names}",
     # Mentor command
-    "mentor_congrats": "Congratulazioni! {mentions}\n\nAvete visto la vostra mentorship gratuita!\n\nScrivete in privato ad {anthony_mention} per ulteriori dettagli!"
+    "mentor_congrats": "Congratulazioni! {mentions}\n\nAvete visto la vostra mentorship gratuita!\n\n# Scrivete in privato ad {anthony_mention} per ulteriori dettagli!"
 }
 
 # =============================================================================
