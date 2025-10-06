@@ -1087,6 +1087,65 @@ async def setupwaiting(ctx):
     ))
     log_command(ctx.author, 'setupwaiting', f"success | members={len(members)} channels_created={channels_created} roles_assigned={roles_assigned}")
 
+# Prefix command: .stopmentor [USER]
+@bot.command(name="stopmentor", description="Rimuove ruolo Sala d’Attesa per gli utenti in questo canale e elimina il canale")
+async def stopmentor(ctx):
+    guild = ctx.guild
+    waiting_role = guild.get_role(WAITING_ROLE_ID)
+    category = guild.get_channel(CATEGORY_ID)
+    if waiting_role is None or not isinstance(category, discord.CategoryChannel):
+        if waiting_role is None:
+            await ctx.send(get_error_message("waiting_role_not_found", role_id=WAITING_ROLE_ID))
+        if not isinstance(category, discord.CategoryChannel):
+            await ctx.send(get_error_message("invalid_category", category_id=CATEGORY_ID))
+        return
+
+    # Determine the channel to operate on: current text channel
+    current_channel = ctx.channel if isinstance(ctx.channel, discord.TextChannel) else None
+    if current_channel is None:
+        await ctx.send(get_error_message("invalid_channel_id"))
+        return
+
+    # Collect members in this channel with the waiting role
+    # Note: For text channels, there is no built-in "members in channel" list with read access; use recent participants via channel.members
+    # Discord.py provides TextChannel.members as members who can see the channel; we filter by role
+    candidates = [m for m in current_channel.members if waiting_role in getattr(m, 'roles', []) and not getattr(m, 'bot', False)]
+
+    if not candidates:
+        await ctx.send(get_error_message("stopmentor_no_waiting_in_channel"))
+        return
+
+    updated = 0
+    for member in candidates:
+        try:
+            if waiting_role in getattr(member, 'roles', []):
+                await member.remove_roles(waiting_role, reason=f"Stop mentor by {ctx.author} ({ctx.author.id})")
+            updated += 1
+        except discord.Forbidden:
+            await ctx.send(get_error_message("missing_permissions", action="rimuovere il ruolo a", member_name=member.display_name))
+            return
+        except discord.HTTPException as e:
+            await ctx.send(get_error_message("http_error", action="rimuovere ruolo a", member_name=member.display_name, error=e))
+            return
+
+    # Delete the channel if it belongs to the configured category
+    channel_deleted = False
+    if current_channel.category and current_channel.category.id == CATEGORY_ID:
+        try:
+            await current_channel.delete(reason=f"Stop mentor by {ctx.author} ({ctx.author.id})")
+            channel_deleted = True
+        except discord.Forbidden:
+            await ctx.send(get_error_message("missing_permissions", action="eliminare questo canale", member_name=""))
+            return
+        except discord.HTTPException as e:
+            await ctx.send(get_error_message("http_error", action="eliminare questo canale", member_name="", error=e))
+            return
+
+    # If channel deleted, message won't be visible; if not deleted, send summary
+    if not channel_deleted:
+        await ctx.send(get_success_message("stopmentor_done_channel", updated=updated, channel_deleted=channel_deleted))
+    log_command(ctx.author, 'stopmentor', f"success | updated={updated} channel_deleted={channel_deleted}")
+
 # Event: React when roles change (auto apply when trigger role is granted)
 @bot.event
 async def on_member_update(before: discord.Member, after: discord.Member):
