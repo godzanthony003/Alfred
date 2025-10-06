@@ -350,6 +350,17 @@ async def ensure_waiting_setup_for_member(guild: discord.Guild, member: discord.
         )
         channel_created = True
 
+    # Try to remove the trigger role after setup completes
+    try:
+        if trigger_role in getattr(member, 'roles', []):
+            await member.remove_roles(trigger_role, reason="Automatic waiting setup completed")
+    except discord.Forbidden:
+        # Missing permissions or role hierarchy; skip silently
+        pass
+    except discord.HTTPException:
+        # Transient API error; skip silently
+        pass
+
     return channel_created, role_assigned
 
 # Prefix command: .muteall
