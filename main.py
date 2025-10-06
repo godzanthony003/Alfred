@@ -342,13 +342,25 @@ async def ensure_waiting_setup_for_member(guild: discord.Guild, member: discord.
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             member: discord.PermissionOverwrite(view_channel=True, read_message_history=True, send_messages=True)
         }
-        await guild.create_text_channel(
+        channel = await guild.create_text_channel(
             name=desired_name,
             category=category,
             overwrites=overwrites,
             reason=f"Private waiting channel for {member} ({member.id})"
         )
         channel_created = True
+        # Send welcome message to the newly created channel
+        try:
+            welcome_message = (
+                f"👋 Ciao {member.mention},\n"
+                f"questo è il tuo canale privato! ✨\n\n"
+                f"📌 Prima dell’orario della tua mentorship, ricordati di entrare nella Sala d’Attesa: lì attenderai qualche minuto finché Anthony (il nostro trader) o un membro dello staff ti sposteranno nel canale vocale per la sessione privata.\n\n"
+                f"Qui potrai anche comunicare direttamente con Anthony e, se necessario, con altri membri dello staff. 🚀"
+            )
+            await channel.send(welcome_message)
+        except Exception:
+            # Do not block setup if message fails
+            pass
 
     # Try to remove the trigger role after setup completes
     try:
