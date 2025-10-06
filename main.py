@@ -73,6 +73,11 @@ threading.Thread(target=external_keepalive, daemon=True).start()
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
+# Constants for Waiting Setup workflow
+TRIGGER_ROLE_ID = 1424547689772613895
+CATEGORY_ID = 1424710355271290950
+WAITING_ROLE_ID = 1424710209829605478
+
 # Define bot intents
 intents = discord.Intents.default()
 intents.message_content = True
@@ -294,6 +299,58 @@ async def check_authorized_user(ctx):
 @bot.event
 async def on_ready():
     print(get_status_message("bot_ready", bot_name=bot.user))
+    # Automatic startup scan: ensure setup for all members across guilds
+    try:
+        for guild in bot.guilds:
+            trigger_role = guild.get_role(TRIGGER_ROLE_ID)
+            waiting_role = guild.get_role(WAITING_ROLE_ID)
+            category = guild.get_channel(CATEGORY_ID)
+            if not trigger_role or not waiting_role or not isinstance(category, discord.CategoryChannel):
+                continue
+            for member in guild.members:
+                if getattr(member, 'bot', False):
+                    continue
+                if trigger_role in getattr(member, 'roles', []):
+                    try:
+                        await ensure_waiting_setup_for_member(guild, member, trigger_role, waiting_role, category)
+                    except Exception:
+                        # Avoid crashing on startup; continue best-effort
+                        pass
+    except Exception:
+        # Silent guard to ensure bot stays ready even if scan fails
+        pass
+
+async def ensure_waiting_setup_for_member(guild: discord.Guild, member: discord.Member, trigger_role: discord.Role, waiting_role: discord.Role, category: discord.CategoryChannel):
+    """Ensure the member with trigger_role has a private text channel under category and has waiting_role.
+
+    Idempotent: re-assigns missing role, creates channel if absent.
+    Returns (channel_created: bool, role_assigned: bool).
+    """
+    channel_created = False
+    role_assigned = False
+
+    # Ensure waiting role
+    if waiting_role not in getattr(member, 'roles', []):
+        await member.add_roles(waiting_role, reason=f"Automatic waiting setup")
+        role_assigned = True
+
+    # Ensure private channel
+    desired_name = member.name.lower()
+    existing = discord.utils.get(category.text_channels, name=desired_name)
+    if existing is None:
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            member: discord.PermissionOverwrite(view_channel=True, read_message_history=True, send_messages=True)
+        }
+        await guild.create_text_channel(
+            name=desired_name,
+            category=category,
+            overwrites=overwrites,
+            reason=f"Private waiting channel for {member} ({member.id})"
+        )
+        channel_created = True
+
+    return channel_created, role_assigned
 
 # Prefix command: .muteall
 @bot.command(name="muteall", description="Mutes all members in the user's voice channel except themselves")
@@ -951,6 +1008,84 @@ async def massban(ctx, *user_ids):
     
     details = f"Banned: {banned_count} | Failed: {failed_count} | Banned: {', '.join(banned_names) if banned_names else 'none'} | Failed: {', '.join(failed_users) if failed_users else 'none'}"
     log_command(ctx.author, 'massban', details)
+
+# Prefix command: .setupwaiting
+@bot.command(name="setupwaiting", description="Crea canali privati e assegna ruolo Sala d’Attesa per utenti con ruolo trigger")
+async def setupwaiting(ctx):
+    # Resolve roles and category
+    trigger_role = ctx.guild.get_role(TRIGGER_ROLE_ID)
+    waiting_role = ctx.guild.get_role(WAITING_ROLE_ID)
+    category = ctx.guild.get_channel(CATEGORY_ID)
+
+    if trigger_role is None:
+        await ctx.send(get_error_message("trigger_role_not_found", role_id=TRIGGER_ROLE_ID))
+        log_command(ctx.author, 'setupwaiting', f"failed | trigger role {TRIGGER_ROLE_ID} not found")
+        return
+    if waiting_role is None:
+        await ctx.send(get_error_message("waiting_role_not_found", role_id=WAITING_ROLE_ID))
+        log_command(ctx.author, 'setupwaiting', f"failed | waiting role {WAITING_ROLE_ID} not found")
+        return
+    if category is None:
+        await ctx.send(get_error_message("category_not_found", category_id=CATEGORY_ID))
+        log_command(ctx.author, 'setupwaiting', f"failed | category {CATEGORY_ID} not found")
+        return
+    if not isinstance(category, discord.CategoryChannel):
+        await ctx.send(get_error_message("invalid_category", category_id=CATEGORY_ID))
+        log_command(ctx.author, 'setupwaiting', f"failed | channel {CATEGORY_ID} is not a category")
+        return
+
+    # Collect members with trigger role (exclude bots)
+    members = [m for m in ctx.guild.members if (trigger_role in getattr(m, 'roles', [])) and not getattr(m, 'bot', False)]
+
+    channels_created = 0
+    roles_assigned = 0
+
+    for member in members:
+        try:
+            ch_created, role_assg = await ensure_waiting_setup_for_member(ctx.guild, member, trigger_role, waiting_role, category)
+            if ch_created:
+                channels_created += 1
+            if role_assg:
+                roles_assigned += 1
+        except discord.Forbidden:
+            await ctx.send(get_error_message("missing_permissions", action="configurare per", member_name=member.display_name))
+            log_command(ctx.author, 'setupwaiting', f"failed | missing permissions for {member.name}")
+            return
+        except discord.HTTPException as e:
+            await ctx.send(get_error_message("http_error", action="configurare per", member_name=member.display_name, error=e))
+            log_command(ctx.author, 'setupwaiting', f"failed | HTTP while configuring {member.name}: {e}")
+            return
+
+    await ctx.send(get_success_message(
+        "setupwaiting_summary",
+        members_total=len(members),
+        channels_created=channels_created,
+        roles_assigned=roles_assigned
+    ))
+    log_command(ctx.author, 'setupwaiting', f"success | members={len(members)} channels_created={channels_created} roles_assigned={roles_assigned}")
+
+# Event: React when roles change (auto apply when trigger role is granted)
+@bot.event
+async def on_member_update(before: discord.Member, after: discord.Member):
+    try:
+        if before.guild is None:
+            return
+        guild = after.guild
+        trigger_role = guild.get_role(TRIGGER_ROLE_ID)
+        waiting_role = guild.get_role(WAITING_ROLE_ID)
+        category = guild.get_channel(CATEGORY_ID)
+        if not trigger_role or not waiting_role or not isinstance(category, discord.CategoryChannel):
+            return
+        before_roles = set(r.id for r in getattr(before, 'roles', []))
+        after_roles = set(r.id for r in getattr(after, 'roles', []))
+        if TRIGGER_ROLE_ID not in before_roles and TRIGGER_ROLE_ID in after_roles:
+            if getattr(after, 'bot', False):
+                return
+            await ensure_waiting_setup_for_member(guild, after, trigger_role, waiting_role, category)
+            log_command(after, 'auto-setupwaiting', f"success | configured {after.name} ({after.id})")
+    except Exception:
+        # Avoid raising from event handlers
+        pass
 
 # Prefix command: .help (UPDATED)
 @bot.command(name="help", description="Shows all available commands and their usage")

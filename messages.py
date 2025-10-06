@@ -34,7 +34,13 @@ ERROR_MESSAGES = {
     # Mentor command
     "not_in_stage": "You must be connected to a Stage channel to use this command!",
     "role_not_found": "The role required for mentorship could not be found.",
-    "no_participants": "No eligible participants found in your Stage channel."
+    "no_participants": "No eligible participants found in your Stage channel.",
+    # Setup Waiting workflow
+    "category_not_found": "Categoria con ID {category_id} non trovata!",
+    "invalid_category": "Il canale con ID {category_id} non è una categoria valida!",
+    "trigger_role_not_found": "Ruolo di trigger non trovato (ID: {role_id})!",
+    "waiting_role_not_found": "Ruolo Sala d’Attesa non trovato (ID: {role_id})!",
+    "channel_create_failed": "Errore nella creazione del canale per @{member_name} {member_id}: {error}"
 }
 
 # =============================================================================
@@ -73,7 +79,9 @@ SUCCESS_MESSAGES = {
     "massban_success": "Successfully banned {count} user(s): {usernames}",
     "massban_partial": "Partially successful! Banned {banned_count} user(s): {banned_names}\nFailed to ban {failed_count} user(s): {failed_names}",
     # Mentor command
-    "mentor_congrats": "Congratulazioni! {mentions}\n\nAvete visto la vostra mentorship gratuita!\n\n# Scrivete in privato ad {anthony_mention} per ulteriori dettagli!"
+    "mentor_congrats": "Congratulazioni! {mentions}\n\nAvete visto la vostra mentorship gratuita!\n\n# Scrivete in privato ad {anthony_mention} per ulteriori dettagli!",
+    # Setup Waiting workflow
+    "setupwaiting_summary": "Completato: trovati {members_total} utenti con ruolo trigger. Canali creati: {channels_created}. Ruoli assegnati/già presenti: {roles_assigned}."
 }
 
 # =============================================================================
@@ -91,6 +99,13 @@ HELP_EMBED = {
             "name": "🎓 Mentorship",
             "value": (
                 "`.mentor` - Assegna un ruolo di partecipazione a tutti gli utenti connessi nel tuo Stage attuale e annuncia i partecipanti."
+            ),
+            "inline": False
+        },
+        {
+            "name": "🛎 Sala d’Attesa (Setup Automatico)",
+            "value": (
+                "`.setupwaiting` - Rileva gli utenti con il ruolo ID `1424547689772613895`, crea per ciascuno un canale testuale privato nella categoria `1424710355271290950` con permessi corretti e assegna il ruolo Sala d’Attesa `1424710209829605478`. L’operazione è idempotente."
             ),
             "inline": False
         },
