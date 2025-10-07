@@ -1,211 +1,311 @@
-# 🤖 BrainAllianceFX Discord Bot
+# 🧠✨ BrainAllianceFX Discord Bot
 
-A comprehensive Discord bot designed for advanced voice channel management, mentorship coordination, and server administration. This bot provides powerful tools for managing voice channels, user permissions, and automated workflows.
+<div align="center">
 
-## ✨ Features
+**A powerful, feature-rich Discord bot for voice channel management and mentorship coordination**
 
-- **🎓 Mentorship Management**: Automated role assignment and private channel creation for mentorship sessions
-- **🔊 Voice Channel Control**: Move, kick, mute, and manage users across voice channels
-- **🛡️ Authorization System**: Secure command access with user authorization management
-- **🔄 Rollback Functionality**: Undo move operations with a single command
-- **📊 Comprehensive Logging**: Detailed command execution logs sent to Discord channels
-- **🌐 Server-wide Operations**: Manage users across all voice channels simultaneously
-- **🎵 Soundboard Control**: Enable/disable soundboard usage in voice channels
-- **👤 User Management**: Change nicknames, ban users, and manage permissions
+[![Made with Python](https://img.shields.io/badge/Made%20with-Python-blue?style=flat-square&logo=python)](https://python.org)
+[![Discord](https://img.shields.io/badge/Discord-Bot-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.com)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-## 🚀 Commands
+</div>
 
-### 🎓 Mentorship Commands
-- **`.mentor`** - Assigns participation role to all users in your current Stage channel and announces participants
-- **`.stopmentor`** - Removes the waiting room role from users in the current channel and deletes the channel
-- **`.setupwaiting`** - Automatically detects users with trigger role, creates private text channels, and assigns waiting room role
+---
 
-### 🔇 Voice Control Commands
-- **`.muteall`** - Mutes all members in your voice channel except yourself
-- **`.unmuteall`** - Unmutes all members in your voice channel except yourself
-- **`.nosb`** - Disables soundboard usage for everyone in your current voice channel
-- **`.dosb`** - Re-enables soundboard usage (restores defaults) in your current voice channel
+## 🌟 What Makes This Bot Special?
 
-### 🔄 Move Commands
-- **`.moveall <CHANNEL>`** - Move ALL users in your voice channel to the specified channel (accepts ID or fuzzy name)
-- **`.servermoveall <CHANNEL>`** - Move ALL users from ALL voice channels to the specified channel (accepts ID or fuzzy name)
-- **`.back`** - Roll back the last move action (moveall/servermoveall)
+BrainAllianceFX is your all-in-one server companion, designed to make Discord server management smooth and effortless. Whether you're running mentorship programs, managing events, or keeping your voice channels organized, this bot has you covered!
 
-**Examples:**
+### ✨ Key Highlights
+
+🎓 **Smart Mentorship System** → Automate role assignments and private channel creation  
+🎵 **Voice Channel Mastery** → Move, mute, and manage users with ease  
+🔐 **Secure by Design** → Advanced authorization system keeps your server safe  
+⏮️ **Undo Actions** → Made a mistake? Roll back with one command  
+📊 **Crystal Clear Logs** → Track everything that happens in your server  
+⚡ **Lightning Fast** → Optimized for performance and reliability
+
+---
+
+## 🎮 Command Reference
+
+### 🎓 Mentorship & Events
+
+<table>
+<tr>
+<td width="30%"><code>.mentor</code></td>
+<td>Assigns participation roles to Stage channel members and announces participants</td>
+</tr>
+<tr>
+<td><code>.stopmentor</code></td>
+<td>Removes waiting room roles and cleans up channels</td>
+</tr>
+<tr>
+<td><code>.setupwaiting</code></td>
+<td>Automatically creates private channels and assigns waiting room roles</td>
+</tr>
+</table>
+
+### 🔊 Voice Channel Control
+
+<table>
+<tr>
+<td width="30%"><code>.muteall</code></td>
+<td>Mutes everyone in your voice channel (except you!)</td>
+</tr>
+<tr>
+<td><code>.unmuteall</code></td>
+<td>Unmutes all members in your voice channel</td>
+</tr>
+<tr>
+<td><code>.nosb</code></td>
+<td>Disables soundboard for the entire channel</td>
+</tr>
+<tr>
+<td><code>.dosb</code></td>
+<td>Re-enables soundboard usage</td>
+</tr>
+</table>
+
+### 🚀 Moving Users Around
+
+<table>
+<tr>
+<td width="30%"><code>.moveall &lt;channel&gt;</code></td>
+<td>Move all users in your channel to another channel</td>
+</tr>
+<tr>
+<td><code>.servermoveall &lt;channel&gt;</code></td>
+<td>Move <strong>everyone</strong> from <strong>all</strong> voice channels to one destination</td>
+</tr>
+<tr>
+<td><code>.back</code></td>
+<td>Undo the last move operation (lifesaver!)</td>
+</tr>
+</table>
+
+**💡 Pro Tips:**
 ```
-.moveall 123456789012345678
-.moveall alobby
-.servermoveall A | Lobby
-.back
+.moveall 123456789012345678    ← Use channel ID
+.moveall alobby                 ← Or fuzzy name matching
+.servermoveall A | Lobby        ← Works with special characters
+.back                           ← Oops? No problem!
 ```
 
 ### 👢 Kick Commands
-- **`.kickall`** - Kicks all users from your voice channel except yourself
-- **`.serverkickall`** - Kicks ALL users from ALL voice channels in the server
 
-### 🔨 Ban Commands
-- **`.massban <USERID> <USERID> <USERID>...`** - Bans multiple users from the server by their user IDs
+<table>
+<tr>
+<td width="30%"><code>.kickall</code></td>
+<td>Removes all users from your voice channel</td>
+</tr>
+<tr>
+<td><code>.serverkickall</code></td>
+<td>Clears all voice channels server-wide</td>
+</tr>
+</table>
 
-**Examples:**
+### 🔨 Moderation Tools
+
+**Mass Ban**
 ```
+.massban <userID> <userID> <userID>...
+
+Examples:
 .massban 123456789012345678 987654321098765432
 .massban 111111111111111111 222222222222222222 333333333333333333
 ```
 
-### 👤 Nickname Commands
-- **`.nick <USER> <NEW_NICK>`** - Change a member's server nickname. `<USER>` can be a mention, ID, or fuzzy display/name. Use `-` or omit `<NEW_NICK>` to clear.
-
-**Examples:**
+**Nickname Management**
 ```
-.nick aion godslayer
-.nick @Aion Godslayer
-.nick 123456789012345678 - (clear nick)
-.nick aion (clear nick)
-```
+.nick <user> <new_nickname>
 
-### 🔐 Authorization Commands (Bot Owner Only)
-- **`.auth <USER_ID>`** - Authorizes a user to use bot commands
-- **`.deauth <USER_ID>`** - Removes a user's authorization
-
-**Examples:**
-```
-.auth 987654321098765432
-.deauth 987654321098765432
+Examples:
+.nick aion Godslayer           ← Set a nickname
+.nick @Aion Cool Person        ← Works with mentions
+.nick 123456789012345678 -     ← Clear nickname
+.nick aion                     ← Also clears nickname
 ```
 
-### ℹ️ Information Commands
-- **`.help`** - Shows all available commands and their usage
+### 🔐 Authorization (Bot Owner Only)
 
-## 🛠️ Setup & Deployment
+<table>
+<tr>
+<td width="30%"><code>.auth &lt;userID&gt;</code></td>
+<td>Grant command access to a user</td>
+</tr>
+<tr>
+<td><code>.deauth &lt;userID&gt;</code></td>
+<td>Revoke command access from a user</td>
+</tr>
+</table>
 
-### Prerequisites
-- Python 3.8 or higher
-- Discord Bot Token
-- Discord Server with appropriate permissions
+### ℹ️ Help
 
-### Local Development Setup
-
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd BrainAllianceFX
-   ```
-
-2. **Create a virtual environment:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure environment variables:**
-   Create a `.env` file in the project root:
-   ```env
-   DISCORD_TOKEN=your_discord_bot_token_here
-   KEEPALIVE_URL=your_keepalive_url_here
-   LOG_CHANNEL_ID=your_log_channel_id_here
-   ```
-
-5. **Run the bot:**
-   ```bash
-   python main.py
-   ```
-
-### 🚀 Deployment on Koyeb
-
-1. **Create a Koyeb account** at [koyeb.com](https://koyeb.com)
-
-2. **Create a new service:**
-   - Click "Create Service"
-   - Choose "GitHub" as source
-   - Connect your GitHub account and select this repository
-
-3. **Configure the service:**
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Run Command:** `python main.py`
-   - **Port:** `8000` (automatically detected)
-
-4. **Set Environment Variables:**
-   In the Koyeb dashboard, go to your service settings and add:
-   - `DISCORD_TOKEN`: Your Discord bot token
-   - `KEEPALIVE_URL`: Your Koyeb service URL (optional, for keepalive)
-   - `LOG_CHANNEL_ID`: Discord channel ID for command logging
-
-5. **Deploy:**
-   - Click "Deploy" to start your service
-   - The bot will automatically start and connect to Discord
-
-### 🔧 Required Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DISCORD_TOKEN` | Your Discord bot token from the Discord Developer Portal | ✅ Yes |
-| `KEEPALIVE_URL` | URL for keepalive requests (optional, helps prevent sleep) | ❌ No |
-| `LOG_CHANNEL_ID` | Discord channel ID where command logs will be sent | ❌ No |
-
-### 🔑 Bot Permissions
-
-Your Discord bot needs the following permissions:
-- **Send Messages**
-- **Manage Messages** (to delete command messages)
-- **Manage Channels** (for channel operations)
-- **Manage Roles** (for role assignments)
-- **Move Members** (for voice channel operations)
-- **Mute Members** (for voice control)
-- **Ban Members** (for ban commands)
-- **Manage Nicknames** (for nickname changes)
-- **Use Slash Commands** (if using slash commands)
-
-### 📊 Logging System
-
-The bot includes a comprehensive logging system that sends detailed command execution logs to a specified Discord channel. Each log includes:
-- 👤 User who executed the command
-- ⚡ Command name and arguments
-- 📋 Detailed execution results
-- 🏠 Server and channel information
-- 🔊 Voice channel context (if applicable)
-
-To enable logging, set the `LOG_CHANNEL_ID` environment variable to your desired log channel ID.
-
-## 🛡️ Security Features
-
-- **Authorization System**: Only authorized users can execute commands
-- **Bot Owner Protection**: Bot owner cannot be deauthorized or banned
-- **Permission Validation**: Commands check for required Discord permissions
-- **Error Handling**: Comprehensive error handling prevents crashes
-- **Command Validation**: Input validation for all user-provided data
-
-## 📝 Tips & Best Practices
-
-- Use channel IDs for exact matches when possible
-- The bot supports fuzzy matching for channel and user names
-- Move commands support rollback with `.back`
-- All commands provide detailed feedback and logging
-- The bot automatically handles permission errors gracefully
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-For support and questions:
-- Create an issue in the GitHub repository
-- Check the Discord server for community support
-- Review the command help with `.help`
+<table>
+<tr>
+<td width="30%"><code>.help</code></td>
+<td>Shows all available commands and how to use them</td>
+</tr>
+</table>
 
 ---
 
-**Made with ❤️ for the BrainAllianceFX community**
+## 🚀 Getting Started
+
+### 📋 What You'll Need
+
+- Python 3.8 or newer
+- A Discord bot token
+- A Discord server with proper permissions
+
+### 💻 Local Development
+
+**1. Clone and enter the project**
+```bash
+git clone <repository-url>
+cd BrainAllianceFX
+```
+
+**2. Set up your environment**
+```bash
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+**3. Configure your bot**
+
+Create a `.env` file:
+```env
+DISCORD_TOKEN=your_bot_token_here
+KEEPALIVE_URL=your_keepalive_url_here
+LOG_CHANNEL_ID=your_log_channel_id_here
+```
+
+**4. Launch!**
+```bash
+python main.py
+```
+
+### ☁️ Deploy to Koyeb
+
+**Step 1:** Create a free account at [koyeb.com](https://koyeb.com)
+
+**Step 2:** Create a new service
+- Select GitHub as your source
+- Connect your repository
+
+**Step 3:** Configure deployment
+```yaml
+Build Command: pip install -r requirements.txt
+Run Command: python main.py
+Port: 8000
+```
+
+**Step 4:** Add environment variables
+- `DISCORD_TOKEN` → Your bot token (required)
+- `KEEPALIVE_URL` → Your service URL (optional)
+- `LOG_CHANNEL_ID` → Log channel ID (optional)
+
+**Step 5:** Hit deploy and watch the magic happen! ✨
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables
+
+| Variable | Purpose | Required |
+|:---------|:--------|:--------:|
+| `DISCORD_TOKEN` | Your Discord bot token | ✅ |
+| `KEEPALIVE_URL` | Keeps your bot awake (helpful for free hosting) | ❌ |
+| `LOG_CHANNEL_ID` | Where command logs are sent | ❌ |
+
+### Required Bot Permissions
+
+Make sure your bot has these permissions enabled:
+
+✅ Send Messages  
+✅ Manage Messages  
+✅ Manage Channels  
+✅ Manage Roles  
+✅ Move Members  
+✅ Mute Members  
+✅ Ban Members  
+✅ Manage Nicknames  
+✅ Use Slash Commands
+
+---
+
+## 📊 Logging System
+
+Every action is tracked with beautiful, detailed logs that include:
+
+- 👤 Who ran the command
+- ⚡ What command was executed
+- 📋 Complete execution details
+- 🏠 Server and channel context
+- 🔊 Voice channel information
+
+Just set your `LOG_CHANNEL_ID` and you're all set!
+
+---
+
+## 🛡️ Security First
+
+Your server's safety is our priority:
+
+- 🔒 **Authorization System** → Only approved users can run commands
+- 👑 **Owner Protection** → Bot owner always has access
+- ✅ **Permission Checks** → Validates Discord permissions before acting
+- 🛠️ **Error Handling** → Graceful error recovery prevents crashes
+- 🔍 **Input Validation** → All user input is thoroughly validated
+
+---
+
+## 💡 Pro Tips
+
+- Use channel IDs for exact matches when moving users
+- Fuzzy matching works great for channel and user names
+- The `.back` command is your best friend for move operations
+- Check logs regularly to monitor bot activity
+- Commands provide instant feedback so you always know what's happening
+
+---
+
+## 🤝 Contributing
+
+We love contributions! Here's how to get involved:
+
+1. 🍴 Fork the repository
+2. 🌿 Create a feature branch
+3. ✨ Make your awesome changes
+4. 🧪 Test everything thoroughly
+5. 📮 Submit a pull request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 💬 Need Help?
+
+We're here for you!
+
+- 🐛 Found a bug? [Create an issue](https://github.com/your-repo/issues)
+- 💭 Have questions? Join our Discord community
+- 📖 Check the built-in help with `.help`
+
+---
+
+<div align="center">
+
+**Built with 💜 for the BrainAllianceFX community**
+
+⭐ Star this repo if you find it helpful!
+
+</div>
