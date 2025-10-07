@@ -18,9 +18,9 @@ DEFAULT_STREAMING_TITLE = "FORMAZIONE"
 DEFAULT_STREAMING_URL = "https://discord.com/channels/1388900966727680141/1424749308892151968"
 DEFAULT_SHOW_SERVER_COUNT = False
 DEFAULT_SHOW_MEMBER_COUNT = False
-DEFAULT_LARGE_IMAGE = "https://i.imgur.com/ejVniQI.png"
+DEFAULT_LARGE_IMAGE = "brainalliance_logo"  # Upload this image to Discord Rich Presence assets
 DEFAULT_LARGE_TEXT = "BrainAlliance VIP"
-DEFAULT_SMALL_IMAGE = "https://em-content.zobj.net/source/apple/114/brain_1f9e0.png"
+DEFAULT_SMALL_IMAGE = "brain_emoji"  # Upload this image to Discord Rich Presence assets
 DEFAULT_SMALL_TEXT = "Brain"
 
 # Settings file to store command changes

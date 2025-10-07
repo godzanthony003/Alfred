@@ -172,6 +172,8 @@ HELP_EMBED = {
                 "`.setstreaming <true/false>` → Enable/disable streaming\n"
                 "`.setlargeimage <key>` → Set large image\n"
                 "`.setsmallimage <key>` → Set small image\n"
+                "`.refreshpresence` → Refresh Rich Presence\n"
+                "`.checkimages` → Check image configuration\n"
                 "`.presenceinfo` → Show current settings\n"
                 "`.presencehelp` → Complete command guide"
             ),

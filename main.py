@@ -1586,6 +1586,14 @@ async def setsmalltext(ctx, *, text: str):
     log_command(ctx.author, 'setsmalltext', f"success | Set small text: {text}")
     await log_to_discord(bot, ctx.author, 'setsmalltext', args=[text])
 
+# Prefix command: .refreshpresence
+@bot.command(name="refreshpresence", description="Refresh Rich Presence with current settings")
+async def refreshpresence(ctx):
+    await presence_manager.set_presence(bot)
+    await ctx.send("✅ Rich Presence refreshed!")
+    log_command(ctx.author, 'refreshpresence', 'success | Refreshed presence')
+    await log_to_discord(bot, ctx.author, 'refreshpresence')
+
 # Prefix command: .resetpresence
 @bot.command(name="resetpresence", description="Reset Rich Presence to default settings")
 async def resetpresence(ctx):
@@ -1646,6 +1654,56 @@ async def presenceinfo(ctx):
     log_command(ctx.author, 'presenceinfo', 'success | Showed settings')
     await log_to_discord(bot, ctx.author, 'presenceinfo')
 
+# Prefix command: .checkimages
+@bot.command(name="checkimages", description="Check if Rich Presence images are properly configured")
+async def checkimages(ctx):
+    settings = presence_manager.settings
+    
+    embed = discord.Embed(
+        title="🖼️ Rich Presence Image Check",
+        color=0x5865F2,
+        timestamp=discord.utils.utcnow()
+    )
+    
+    # Check large image
+    large_status = "✅ Set" if settings['large_image'] else "❌ Not set"
+    embed.add_field(
+        name="Large Image",
+        value=f"**Key:** {settings['large_image'] or 'None'}\n"
+              f"**Text:** {settings['large_text'] or 'None'}\n"
+              f"**Status:** {large_status}",
+        inline=True
+    )
+    
+    # Check small image
+    small_status = "✅ Set" if settings['small_image'] else "❌ Not set"
+    embed.add_field(
+        name="Small Image",
+        value=f"**Key:** {settings['small_image'] or 'None'}\n"
+              f"**Text:** {settings['small_text'] or 'None'}\n"
+              f"**Status:** {small_status}",
+        inline=True
+    )
+    
+    # Instructions
+    embed.add_field(
+        name="📋 How to Fix Images",
+        value=(
+            "1. Go to [Discord Developer Portal](https://discord.com/developers/applications)\n"
+            "2. Select your bot application\n"
+            "3. Go to 'Rich Presence' → 'Art Assets'\n"
+            "4. Upload your images with simple names\n"
+            "5. Use `.setlargeimage 'name'` to set them"
+        ),
+        inline=False
+    )
+    
+    embed.set_footer(text="💡 Images must be uploaded to Discord first!")
+    
+    await ctx.send(embed=embed)
+    log_command(ctx.author, 'checkimages', 'success | Checked image settings')
+    await log_to_discord(bot, ctx.author, 'checkimages')
+
 # Prefix command: .presencehelp
 @bot.command(name="presencehelp", description="Show Rich Presence command guide")
 async def presencehelp(ctx):
@@ -1662,6 +1720,7 @@ async def presencehelp(ctx):
             "`.setstatus <status>` → Change bot status\n"
             "`.setactivity <text>` → Set activity text\n"
             "`.settype <type>` → Set activity type\n"
+            "`.refreshpresence` → Refresh Rich Presence\n"
             "`.resetpresence` → Reset to default"
         ),
         inline=False
