@@ -109,15 +109,7 @@ async def _delete_invocation(ctx):
         pass
 
 # --- Global hook: update Rich Presence when commands are executed ---
-@bot.after_invoke
-async def _update_presence_after_command(ctx):
-    try:
-        if ctx and ctx.command:
-            # Update Rich Presence to show command activity
-            await set_custom_activity(bot, f"using .{ctx.command.name}")
-    except Exception:
-        # Don't crash the bot if Rich Presence fails
-        pass
+# Removed automatic command activity updates - Rich Presence shows only what you set
 
 # --- Console logging helper ---
 def log_command(author, command_name, details):
