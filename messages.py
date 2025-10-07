@@ -188,6 +188,7 @@ HELP_EMBED = {
         {
             "name": "ℹ️ Information",
             "value": (
+                "`.ping` - Shows bot latency and responds with Pong!\n"
                 "• All commands (except auth/deauth) require authorization\n"
                 "• Only authorized users can use voice management commands\n"
                 "• Bot owner can authorize/deauthorize users\n"

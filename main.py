@@ -1258,6 +1258,16 @@ async def on_member_update(before: discord.Member, after: discord.Member):
         # Avoid raising from event handlers
         pass
 
+# Prefix command: .ping
+@bot.command(name="ping", description="Shows bot latency and responds with Pong!")
+async def ping(ctx):
+    # Calculate latency in milliseconds
+    latency_ms = round(bot.latency * 1000)
+    
+    await ctx.send(f"Pong! 🏓 {latency_ms}ms")
+    log_command(ctx.author, 'ping', f"success | Latency: {latency_ms}ms")
+    await log_to_discord(bot, ctx.author, 'ping', details=f"Latency: {latency_ms}ms")
+
 # Prefix command: .help (UPDATED)
 @bot.command(name="help", description="Shows all available commands and their usage")
 async def help_command(ctx):

@@ -140,11 +140,15 @@ Examples:
 </tr>
 </table>
 
-### ℹ️ Help
+### ℹ️ Help & Utilities
 
 <table>
 <tr>
-<td width="30%"><code>.help</code></td>
+<td width="30%"><code>.ping</code></td>
+<td>Shows bot latency and responds with Pong!</td>
+</tr>
+<tr>
+<td><code>.help</code></td>
 <td>Shows all available commands and how to use them</td>
 </tr>
 </table>
