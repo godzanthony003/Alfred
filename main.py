@@ -8,6 +8,7 @@ import time
 from urllib.request import urlopen, Request
 import re
 import difflib
+import asyncio
 
 # Import messages from separate file
 from messages import (
@@ -1290,6 +1291,54 @@ async def help_command(ctx):
     await ctx.send(embed=help_embed)
     log_command(ctx.author, 'help', 'success | Help embed sent')
     await log_to_discord(bot, ctx.author, 'help', details="Help embed sent")
+
+# Prefix command: .ca (clear all - delete last 100 messages and send KABOOM)
+@bot.command(name="ca", description="Clears the last 100 messages and sends a KABOOM message")
+async def ca(ctx):
+    try:
+        # Get the last 100 messages from the channel
+        messages = []
+        async for message in ctx.channel.history(limit=100):
+            messages.append(message)
+        
+        if not messages:
+            log_command(ctx.author, 'ca', 'failed | No messages to delete')
+            await ctx.send(get_error_message("no_messages_to_clear"))
+            return
+        
+        # Delete the messages in batches to avoid rate limits
+        deleted_count = 0
+        for message in messages:
+            try:
+                await message.delete()
+                deleted_count += 1
+            except discord.Forbidden:
+                log_command(ctx.author, 'ca', f'failed | Missing permissions to delete message {message.id}')
+                continue
+            except discord.HTTPException as e:
+                log_command(ctx.author, 'ca', f'failed | HTTP error while deleting message {message.id}: {e}')
+                continue
+        
+        # Send KABOOM message
+        kaboom_msg = await ctx.send(get_success_message("kaboom_message"))
+        
+        # Delete the KABOOM message after 3 seconds
+        await asyncio.sleep(3)
+        try:
+            await kaboom_msg.delete()
+        except (discord.Forbidden, discord.HTTPException):
+            # If we can't delete the KABOOM message, just log it
+            log_command(ctx.author, 'ca', 'warning | Could not delete KABOOM message')
+        
+        log_command(ctx.author, 'ca', f'success | Deleted {deleted_count} messages')
+        await log_to_discord(bot, ctx.author, 'ca', details=f"Deleted {deleted_count} messages from #{ctx.channel.name}")
+        
+    except discord.Forbidden:
+        log_command(ctx.author, 'ca', 'failed | Missing permissions to manage messages')
+        await ctx.send(get_error_message("missing_permissions", action="manage messages", member_name=""))
+    except discord.HTTPException as e:
+        log_command(ctx.author, 'ca', f'failed | HTTP error: {e}')
+        await ctx.send(get_error_message("http_error", action="clearing messages", member_name="", error=e))
 
 # Prefix command: .mentor (assign role to audience in current Stage channel and announce)
 @bot.command(name="mentor", description="Assegna un ruolo a tutti i partecipanti connessi nel tuo Stage e annuncia i partecipanti")

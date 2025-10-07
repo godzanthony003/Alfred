@@ -41,7 +41,8 @@ ERROR_MESSAGES = {
     "trigger_role_not_found": "Ruolo di trigger non trovato (ID: {role_id})!",
     "waiting_role_not_found": "Ruolo Sala d’Attesa non trovato (ID: {role_id})!",
     "channel_create_failed": "Errore nella creazione del canale per @{member_name} {member_id}: {error}",
-    "stopmentor_no_waiting_in_channel": "Nessun utente con il ruolo Sala d’Attesa trovato in questo canale."
+    "stopmentor_no_waiting_in_channel": "Nessun utente con il ruolo Sala d'Attesa trovato in questo canale.",
+    "no_messages_to_clear": "No messages found to clear in this channel!"
 }
 
 # =============================================================================
@@ -84,8 +85,10 @@ SUCCESS_MESSAGES = {
     # Setup Waiting workflow
     "setupwaiting_summary": "Completato: trovati {members_total} utenti con ruolo trigger. Canali creati: {channels_created}. Ruoli assegnati/già presenti: {roles_assigned}.",
     # Stop mentor
-    "stopmentor_done": "Sessione terminata per @{member_name}. Canale eliminato: {channel_deleted}. Ruolo Sala d’Attesa rimosso: {role_removed}.",
-    "stopmentor_done_channel": "Sessione terminata. Utenti aggiornati: {updated}. Canale eliminato: {channel_deleted}."
+    "stopmentor_done": "Sessione terminata per @{member_name}. Canale eliminato: {channel_deleted}. Ruolo Sala d'Attesa rimosso: {role_removed}.",
+    "stopmentor_done_channel": "Sessione terminata. Utenti aggiornati: {updated}. Canale eliminato: {channel_deleted}.",
+    # Clear all command
+    "kaboom_message": "💥 **KABOOM!** 💥\n\n*Channel cleared!*"
 }
 
 # =============================================================================
@@ -93,115 +96,80 @@ SUCCESS_MESSAGES = {
 # =============================================================================
 
 HELP_EMBED = {
-    "title": "🤖 Bot Commands - User Management",
-    "description": "Here are all available commands and their usage:",
-    "color": 0x00ff00,
-    "footer": "🔹 User Management Bot | All commands use '.' prefix",
+    "title": "🧠✨ BrainAllianceFX Bot Commands",
+    "description": "All available commands at your fingertips! Use `.` prefix for everything.",
+    "color": 0x5865F2,  # Discord blurple
+    "footer": "💜 Made with love for BrainAllianceFX",
     
     "fields": [
         {
-            "name": "🎓 Mentorship",
+            "name": "🎓 Mentorship & Events",
             "value": (
-                "`.mentor` - Assegna un ruolo di partecipazione a tutti gli utenti connessi nel tuo Stage attuale e annuncia i partecipanti."
+                "`.mentor` → Assign participation roles to Stage members\n"
+                "`.stopmentor [USER]` → Remove waiting room role & delete private channel\n"
+                "`.setupwaiting` → Auto-create private channels for waiting users"
             ),
             "inline": False
         },
         {
-            "name": "🛑 Termina Mentorship",
+            "name": "🔊 Voice Controls",
             "value": (
-                "`.stopmentor [UTENTE]` - Rimuove il ruolo Sala d’Attesa `1424710209829605478` dall’utente e elimina il suo canale privato nella categoria `1424710355271290950`. Se `[UTENTE]` non è specificato, usa l'autore del comando."
+                "`.muteall` / `.unmuteall` → Mute/unmute everyone (except you!)\n"
+                "`.nosb` / `.dosb` → Disable/enable soundboard"
             ),
             "inline": False
         },
         {
-            "name": "🛎 Sala d’Attesa (Setup Automatico)",
+            "name": "🚀 Move Users",
             "value": (
-                "`.setupwaiting` - Rileva gli utenti con il ruolo ID `1424547689772613895`, crea per ciascuno un canale testuale privato nella categoria `1424710355271290950` con permessi corretti e assegna il ruolo Sala d’Attesa `1424710209829605478`. L’operazione è idempotente."
+                "`.moveall <channel>` → Move your channel to another\n"
+                "`.servermoveall <channel>` → Move EVERYONE to one channel\n"
+                "`.back` → Undo last move (lifesaver!)\n"
+                "*Tip: Use channel ID or fuzzy names like 'alobby'*"
             ),
             "inline": False
         },
         {
-            "name": "🔇 Voice Control Commands",
+            "name": "👢 Kick & 🔨 Ban",
             "value": (
-                "`.muteall` - Mutes all members in your voice channel except yourself\n"
-                "`.unmuteall` - Unmutes all members in your voice channel except yourself\n"
-                "`.nosb` - Disables soundboard usage for everyone in your current voice channel\n"
-                "`.dosb` - Re-enables soundboard usage (restore defaults) in your current voice channel"
+                "`.kickall` → Clear your voice channel\n"
+                "`.serverkickall` → Clear ALL voice channels\n"
+                "`.massban <id> <id>...` → Ban multiple users by ID"
             ),
             "inline": False
         },
         {
-            "name": "🔄 Move Commands",
+            "name": "🧹 Channel Management",
             "value": (
-                "`.moveall <CHANNEL>` - Move ALL users in your voice channel to the given channel (accepts ID or fuzzy name)\n"
-                "`.servermoveall <CHANNEL>` - Move ALL users from ALL voice channels to the given channel (accepts ID or fuzzy name)\n"
-                "`.back` - Roll back the last move action (moveall/servermoveall)\n"
-                "\n**Examples:**\n"
-                "`.moveall 123456789012345678`\n"
-                "`.moveall alobby`\n"
-                "`.servermoveall A | Lobby`\n"
-                "`.back`"
+                "`.ca` → Clear last 100 messages + KABOOM! 💥\n"
+                "*Perfect for cleaning up channels*"
             ),
             "inline": False
         },
         {
-            "name": "👢 Kick Commands",
+            "name": "👤 Nicknames",
             "value": (
-                "`.kickall` - Kicks all users from your voice channel except yourself\n"
-                "`.serverkickall` - Kicks ALL users from ALL voice channels in the server"
+                "`.nick <user> <new_nick>` → Change someone's nickname\n"
+                "`.nick <user> -` → Clear nickname\n"
+                "*Supports mentions, IDs, or fuzzy names*"
             ),
             "inline": False
         },
         {
-            "name": "🔨 Ban Commands",
+            "name": "🔐 Authorization (Owner Only)",
             "value": (
-                "`.massban <USERID> <USERID> <USERID>...` - Bans multiple users from the server by their user IDs\n"
-                "\n**Examples:**\n"
-                "`.massban 123456789012345678 987654321098765432`\n"
-                "`.massban 111111111111111111 222222222222222222 333333333333333333`"
+                "`.auth <user_id>` → Grant command access\n"
+                "`.deauth <user_id>` → Revoke command access"
             ),
             "inline": False
         },
         {
-            "name": "👤 Nickname Commands",
+            "name": "💡 Quick Tips",
             "value": (
-                "`.nick <USER> <NEW_NICK>` - Change a member's server nickname. `<USER>` can be a mention, ID, or fuzzy display/name. Use `-` or omit `<NEW_NICK>` to clear.\n"
-                "\n**Examples:**\n"
-                "`.nick aion godslayer`\n"
-                "`.nick @Aion Godslayer`\n"
-                "`.nick 123456789012345678 -` (clear nick)\n"
-                "`.nick aion` (clear nick)"
-            ),
-            "inline": False
-        },
-        {
-            "name": "🔐 Authorization Commands (Bot Owner Only)",
-            "value": (
-                "`.auth <USER_ID>` - Authorizes a user to use bot commands\n"
-                "`.deauth <USER_ID>` - Removes a user's authorization\n"
-                "\n**Examples:**\n"
-                "`.auth 987654321098765432`\n"
-                "`.deauth 987654321098765432`"
-            ),
-            "inline": False
-        },
-        {
-            "name": "ℹ️ Information",
-            "value": (
-                "`.ping` - Shows bot latency and responds with Pong!\n"
-                "• All commands (except auth/deauth) require authorization\n"
-                "• Only authorized users can use voice management commands\n"
-                "• Bot owner can authorize/deauthorize users\n"
-                "• Move commands support rollback with `.back`\n"
-                "• Commands provide detailed logs of actions performed"
-            ),
-            "inline": False
-        },
-        {
-            "name": "📝 Tips",
-            "value": (
-                "• You can use channel IDs or approximate names (e.g., 'alobby' → 'A | Lobby')\n"
-                "• For exact matches, prefer using the ID"
+                "• Use `.ping` to check bot status\n"
+                "• Channel IDs work best for exact matches\n"
+                "• All actions are logged automatically\n"
+                "• `.back` works for both move commands"
             ),
             "inline": False
         }
