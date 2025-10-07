@@ -72,6 +72,7 @@ threading.Thread(target=external_keepalive, daemon=True).start()
 # Load environment variables from .env file
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+LOG_CHANNEL_ID = os.getenv('LOG_CHANNEL_ID')
 
 # Constants for Waiting Setup workflow
 TRIGGER_ROLE_ID = 1424547689772613895
@@ -114,6 +115,78 @@ def log_command(author, command_name, details):
             print(f"! [unknown] triggered .{command_name} | {details}")
         except Exception:
             pass
+
+# --- Discord logging helper ---
+async def log_to_discord(bot, author, command_name, args=None, details=None):
+    """Send command execution log to Discord log channel"""
+    if not LOG_CHANNEL_ID:
+        return  # Skip if no log channel configured
+    
+    try:
+        log_channel = bot.get_channel(int(LOG_CHANNEL_ID))
+        if not log_channel:
+            return  # Skip if channel not found
+        
+        # Create embed for logging
+        embed = discord.Embed(
+            title="🤖 Command Executed",
+            color=0x00ff00,
+            timestamp=discord.utils.utcnow()
+        )
+        
+        # Add user information
+        embed.add_field(
+            name="👤 User",
+            value=f"{author.mention} ({author.name}#{author.discriminator})\nID: {author.id}",
+            inline=True
+        )
+        
+        # Add command information
+        embed.add_field(
+            name="⚡ Command",
+            value=f"`.{command_name}`",
+            inline=True
+        )
+        
+        # Add arguments if provided
+        if args is not None:
+            args_str = " ".join(str(arg) for arg in args) if isinstance(args, (list, tuple)) else str(args)
+            embed.add_field(
+                name="📝 Arguments",
+                value=f"`{args_str}`" if args_str else "None",
+                inline=False
+            )
+        
+        # Add additional details if provided
+        if details:
+            embed.add_field(
+                name="📋 Details",
+                value=details[:1024],  # Discord field limit
+                inline=False
+            )
+        
+        # Add server information
+        if hasattr(author, 'guild') and author.guild:
+            embed.add_field(
+                name="🏠 Server",
+                value=f"{author.guild.name} ({author.guild.id})",
+                inline=True
+            )
+        
+        # Add channel information
+        if hasattr(author, 'voice') and author.voice and author.voice.channel:
+            embed.add_field(
+                name="🔊 Voice Channel",
+                value=f"{author.voice.channel.name} ({author.voice.channel.id})",
+                inline=True
+            )
+        
+        await log_channel.send(embed=embed)
+        
+    except Exception as e:
+        # Don't crash the bot if logging fails
+        print(f"Failed to log to Discord: {e}")
+        pass
 
 # --- Voice channel resolution helper ---
 def _normalize_channel_name(name: str):
@@ -405,6 +478,7 @@ async def muteall(ctx):
     await ctx.send(get_success_message("muted_users", count=members_muted, channel_name=voice_channel.name))
     details = f"Members muted: {members_muted} | " + (", ".join(muted_names) if muted_names else "none") + f" | Channel: {voice_channel.name}"
     log_command(ctx.author, 'muteall', details)
+    await log_to_discord(bot, ctx.author, 'muteall', details=details)
 
 # Prefix command: .unmuteall
 @bot.command(name="unmuteall", description="Unmutes all members in the user's voice channel except themselves")
@@ -436,6 +510,7 @@ async def unmuteall(ctx):
     await ctx.send(get_success_message("unmuted_users", count=members_unmuted, channel_name=voice_channel.name))
     details = f"Members unmuted: {members_unmuted} | " + (", ".join(unmuted_names) if unmuted_names else "none") + f" | Channel: {voice_channel.name}"
     log_command(ctx.author, 'unmuteall', details)
+    await log_to_discord(bot, ctx.author, 'unmuteall', details=details)
 
 # Prefix command: .nosb (disable soundboard in the issuer's current voice channel)
 @bot.command(name="nosb", description="Disables soundboard for everyone in your current voice channel")
@@ -454,6 +529,7 @@ async def nosb(ctx):
         await channel.set_permissions(everyone_role, overwrite=overwrite)
         await ctx.send(get_success_message("soundboard_disabled_channel", channel_name=channel.name, channel_id=channel.id))
         log_command(ctx.author, 'nosb', f"success | Soundboard disabled in #{channel.name} ({channel.id})")
+        await log_to_discord(bot, ctx.author, 'nosb', details=f"Soundboard disabled in #{channel.name} ({channel.id})")
     except discord.Forbidden:
         log_command(ctx.author, 'nosb', 'failed | Missing permissions to update @everyone')
         await ctx.send(get_error_message("missing_permissions", action="update permissions for", member_name="@everyone"))
@@ -479,6 +555,7 @@ async def dosb(ctx):
         await channel.set_permissions(everyone_role, overwrite=overwrite)
         await ctx.send(get_success_message("soundboard_enabled_channel", channel_name=channel.name, channel_id=channel.id))
         log_command(ctx.author, 'dosb', f"success | Soundboard restored in #{channel.name} ({channel.id})")
+        await log_to_discord(bot, ctx.author, 'dosb', details=f"Soundboard restored in #{channel.name} ({channel.id})")
     except discord.Forbidden:
         log_command(ctx.author, 'dosb', 'failed | Missing permissions to update @everyone')
         await ctx.send(get_error_message("missing_permissions", action="update permissions for", member_name="@everyone"))
@@ -530,6 +607,7 @@ async def auth(ctx, user_id: str):
     await save_authorized_users(authorized_users)
     await ctx.send(get_success_message("user_authorized", username=username, user_id=user_id))
     log_command(ctx.author, 'auth', f"success | Authorized {username} ({user_id})")
+    await log_to_discord(bot, ctx.author, 'auth', args=[user_id], details=f"Authorized {username} ({user_id})")
 
 # Prefix command: .deauth USERID
 @bot.command(name="deauth", description="Removes a user's authorization to use bot commands (restricted to bot owner)")
@@ -579,6 +657,7 @@ async def deauth(ctx, user_id: str):
     await save_authorized_users(authorized_users)
     await ctx.send(get_success_message("user_deauthorized", username=username, user_id=user_id))
     log_command(ctx.author, 'deauth', f"success | Deauthorized {username} ({user_id})")
+    await log_to_discord(bot, ctx.author, 'deauth', args=[user_id], details=f"Deauthorized {username} ({user_id})")
 
 # Prefix command: .moveall CHANNELID (UPDATED WITH ROLLBACK SUPPORT)
 @bot.command(name="moveall", description="Moves all members from the user's voice channel to the specified channel")
@@ -653,6 +732,7 @@ async def moveall(ctx, channel: str):
         f" | From: {source_channel.name} ({source_channel.id}) -> To: {destination_channel.name} ({destination_channel.id})"
     )
     log_command(ctx.author, 'moveall', details)
+    await log_to_discord(bot, ctx.author, 'moveall', args=[channel], details=details)
 
 # Prefix command: .servermoveall CHANNELID (NEW)
 @bot.command(name="servermoveall", description="Moves all users from all voice channels in the server to the specified channel")
@@ -733,6 +813,7 @@ async def servermoveall(ctx, channel: str):
         f" | To: {destination_channel.name} ({destination_channel.id}) | Channels affected: {channels_affected}"
     )
     log_command(ctx.author, 'servermoveall', details)
+    await log_to_discord(bot, ctx.author, 'servermoveall', args=[channel], details=details)
 
 # Prefix command: .back (NEW - ROLLBACK SYSTEM)
 @bot.command(name="back", description="Rollbacks the last move action, returning users to their original channels")
@@ -814,6 +895,7 @@ async def back(ctx):
     
     await ctx.send(get_success_message("rollback_success", count=members_moved_back, channels_count=channels_affected))
     log_command(ctx.author, 'back', f"success | Members moved back: {members_moved_back} | Channels affected: {channels_affected}")
+    await log_to_discord(bot, ctx.author, 'back', details=f"Members moved back: {members_moved_back} | Channels affected: {channels_affected}")
 
 # Prefix command: .kickall
 @bot.command(name="kickall", description="Kicks all members from the user's voice channel except themselves")
@@ -849,6 +931,7 @@ async def kickall(ctx):
                                      channel_id=voice_channel.id))
     details = f"Members kicked: {members_kicked} | " + (", ".join(kicked_names) if kicked_names else "none") + f" | Channel: {voice_channel.name} ({voice_channel.id})"
     log_command(ctx.author, 'kickall', details)
+    await log_to_discord(bot, ctx.author, 'kickall', details=details)
 
 # Prefix command: .serverkickall
 @bot.command(name="serverkickall", description="Kicks all members from all voice channels in the server")
@@ -894,6 +977,7 @@ async def serverkickall(ctx):
         f" | Channels affected: {channels_affected}"
     )
     log_command(ctx.author, 'serverkickall', details)
+    await log_to_discord(bot, ctx.author, 'serverkickall', details=details)
 
 # Prefix command: .nick <USER> <NEW_NICK>
 @bot.command(name="nick", description="Change a member's server nickname by mention/ID/fuzzy name")
@@ -929,9 +1013,11 @@ async def nick(ctx, current_name: str, *, new_nick: str = None):
         if desired_nick is None:
             await ctx.send(get_success_message("nickname_cleared", member_name=member.display_name, member_id=member.id))
             log_command(ctx.author, 'nick', f"success | Cleared nickname for {member.name} ({member.id})")
+            await log_to_discord(bot, ctx.author, 'nick', args=[current_name, '-'], details=f"Cleared nickname for {member.name} ({member.id})")
         else:
             await ctx.send(get_success_message("nickname_changed", member_name=member.display_name, member_id=member.id, new_nick=desired_nick))
             log_command(ctx.author, 'nick', f"success | Changed nickname for {member.name} ({member.id}) to '{desired_nick}'")
+            await log_to_discord(bot, ctx.author, 'nick', args=[current_name, desired_nick], details=f"Changed nickname for {member.name} ({member.id}) to '{desired_nick}'")
     except discord.Forbidden:
         log_command(ctx.author, 'nick', f"failed | Missing permissions to change nick for {member.name}")
         await ctx.send(get_error_message("missing_permissions", action="change nickname for", member_name=member.display_name))
@@ -1031,6 +1117,7 @@ async def massban(ctx, *user_ids):
     
     details = f"Banned: {banned_count} | Failed: {failed_count} | Banned: {', '.join(banned_names) if banned_names else 'none'} | Failed: {', '.join(failed_users) if failed_users else 'none'}"
     log_command(ctx.author, 'massban', details)
+    await log_to_discord(bot, ctx.author, 'massban', args=list(user_ids), details=details)
 
 # Prefix command: .setupwaiting
 @bot.command(name="setupwaiting", description="Crea canali privati e assegna ruolo Sala d’Attesa per utenti con ruolo trigger")
@@ -1086,6 +1173,7 @@ async def setupwaiting(ctx):
         roles_assigned=roles_assigned
     ))
     log_command(ctx.author, 'setupwaiting', f"success | members={len(members)} channels_created={channels_created} roles_assigned={roles_assigned}")
+    await log_to_discord(bot, ctx.author, 'setupwaiting', details=f"Members processed: {len(members)} | Channels created: {channels_created} | Roles assigned: {roles_assigned}")
 
 # Prefix command: .stopmentor [USER]
 @bot.command(name="stopmentor", description="Rimuove ruolo Sala d’Attesa per gli utenti in questo canale e elimina il canale")
@@ -1145,6 +1233,7 @@ async def stopmentor(ctx):
     if not channel_deleted:
         await ctx.send(get_success_message("stopmentor_done_channel", updated=updated, channel_deleted=channel_deleted))
     log_command(ctx.author, 'stopmentor', f"success | updated={updated} channel_deleted={channel_deleted}")
+    await log_to_discord(bot, ctx.author, 'stopmentor', details=f"Users updated: {updated} | Channel deleted: {channel_deleted}")
 
 # Event: React when roles change (auto apply when trigger role is granted)
 @bot.event
@@ -1190,6 +1279,7 @@ async def help_command(ctx):
     
     await ctx.send(embed=help_embed)
     log_command(ctx.author, 'help', 'success | Help embed sent')
+    await log_to_discord(bot, ctx.author, 'help', details="Help embed sent")
 
 # Prefix command: .mentor (assign role to audience in current Stage channel and announce)
 @bot.command(name="mentor", description="Assegna un ruolo a tutti i partecipanti connessi nel tuo Stage e annuncia i partecipanti")
@@ -1246,6 +1336,7 @@ async def mentor(ctx):
     await ctx.send(announcement)
     details = f"Participants: {len(eligible_members)} | " + (", ".join(assigned_names) if assigned_names else "none") + f" | Stage: {stage_channel.name} ({stage_channel.id}) | Role: {role.name} ({role.id})"
     log_command(ctx.author, 'mentor', details)
+    await log_to_discord(bot, ctx.author, 'mentor', details=details)
 
 # Run the bot
 bot.run(TOKEN)
