@@ -117,24 +117,6 @@ class RichPresenceManager:
                     type=self.settings['activity_type'],
                     name=activity_text
                 )
-                
-                # Add assets if they exist
-                if (self.settings['large_image'] or self.settings['small_image'] or 
-                    self.settings['large_text'] or self.settings['small_text']):
-                    
-                    # Create assets object
-                    assets = {}
-                    if self.settings['large_image']:
-                        assets['large_image'] = self.settings['large_image']
-                    if self.settings['large_text']:
-                        assets['large_text'] = self.settings['large_text']
-                    if self.settings['small_image']:
-                        assets['small_image'] = self.settings['small_image']
-                    if self.settings['small_text']:
-                        assets['small_text'] = self.settings['small_text']
-                    
-                    # Set assets on activity
-                    activity.assets = assets
             
             # Set the presence
             await bot.change_presence(
@@ -143,10 +125,10 @@ class RichPresenceManager:
             )
             
             print(f"🎭 Rich Presence set: {activity_text}")
-            if hasattr(activity, 'assets') and activity.assets:
-                print(f"🖼️ Assets: {activity.assets}")
-            else:
-                print("🖼️ No assets set")
+            print(f"🖼️ Large Image: {self.settings['large_image']}")
+            print(f"🖼️ Small Image: {self.settings['small_image']}")
+            print(f"📝 Large Text: {self.settings['large_text']}")
+            print(f"📝 Small Text: {self.settings['small_text']}")
             
         except Exception as e:
             print(f"❌ Error setting Rich Presence: {e}")
@@ -161,24 +143,6 @@ class RichPresenceManager:
                 type=activity_type,
                 name=text
             )
-            
-            # Add assets if they exist
-            if (self.settings['large_image'] or self.settings['small_image'] or 
-                self.settings['large_text'] or self.settings['small_text']):
-                
-                # Create assets object
-                assets = {}
-                if self.settings['large_image']:
-                    assets['large_image'] = self.settings['large_image']
-                if self.settings['large_text']:
-                    assets['large_text'] = self.settings['large_text']
-                if self.settings['small_image']:
-                    assets['small_image'] = self.settings['small_image']
-                if self.settings['small_text']:
-                    assets['small_text'] = self.settings['small_text']
-                
-                # Set assets on activity
-                activity.assets = assets
             
             await bot.change_presence(
                 status=self.settings['bot_status'],
