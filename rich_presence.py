@@ -18,10 +18,12 @@ DEFAULT_STREAMING_TITLE = "FORMAZIONE"
 DEFAULT_STREAMING_URL = "https://discord.com/channels/1388900966727680141/1424749308892151968"
 DEFAULT_SHOW_SERVER_COUNT = False
 DEFAULT_SHOW_MEMBER_COUNT = False
-DEFAULT_LARGE_IMAGE = "brainalliance_logo"  # Upload this image to Discord Rich Presence assets
-DEFAULT_LARGE_TEXT = "BrainAlliance VIP"
-DEFAULT_SMALL_IMAGE = "brain_emoji"  # Upload this image to Discord Rich Presence assets
-DEFAULT_SMALL_TEXT = "Brain"
+# Note: Discord.py bots cannot display Rich Presence images
+# These settings are kept for compatibility but won't have any effect
+DEFAULT_LARGE_IMAGE = ""
+DEFAULT_LARGE_TEXT = ""
+DEFAULT_SMALL_IMAGE = ""
+DEFAULT_SMALL_TEXT = ""
 
 # Settings file to store command changes
 SETTINGS_FILE = 'rich_presence_settings.json'
@@ -125,10 +127,7 @@ class RichPresenceManager:
             )
             
             print(f"🎭 Rich Presence set: {activity_text}")
-            print(f"🖼️ Large Image: {self.settings['large_image']}")
-            print(f"🖼️ Small Image: {self.settings['small_image']}")
-            print(f"📝 Large Text: {self.settings['large_text']}")
-            print(f"📝 Small Text: {self.settings['small_text']}")
+            print("ℹ️ Note: Discord bots cannot display Rich Presence images")
             
         except Exception as e:
             print(f"❌ Error setting Rich Presence: {e}")

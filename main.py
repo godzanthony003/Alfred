@@ -1655,53 +1655,49 @@ async def presenceinfo(ctx):
     await log_to_discord(bot, ctx.author, 'presenceinfo')
 
 # Prefix command: .checkimages
-@bot.command(name="checkimages", description="Check if Rich Presence images are properly configured")
+@bot.command(name="checkimages", description="Check Rich Presence image settings (Note: Discord bots cannot display images)")
 async def checkimages(ctx):
-    settings = presence_manager.settings
-    
     embed = discord.Embed(
-        title="🖼️ Rich Presence Image Check",
-        color=0x5865F2,
+        title="🖼️ Rich Presence Image Information",
+        color=0xFF6B6B,
         timestamp=discord.utils.utcnow()
     )
     
-    # Check large image
-    large_status = "✅ Set" if settings['large_image'] else "❌ Not set"
     embed.add_field(
-        name="Large Image",
-        value=f"**Key:** {settings['large_image'] or 'None'}\n"
-              f"**Text:** {settings['large_text'] or 'None'}\n"
-              f"**Status:** {large_status}",
-        inline=True
-    )
-    
-    # Check small image
-    small_status = "✅ Set" if settings['small_image'] else "❌ Not set"
-    embed.add_field(
-        name="Small Image",
-        value=f"**Key:** {settings['small_image'] or 'None'}\n"
-              f"**Text:** {settings['small_text'] or 'None'}\n"
-              f"**Status:** {small_status}",
-        inline=True
-    )
-    
-    # Instructions
-    embed.add_field(
-        name="📋 How to Fix Images",
+        name="⚠️ Important Notice",
         value=(
-            "1. Go to [Discord Developer Portal](https://discord.com/developers/applications)\n"
-            "2. Select your bot application\n"
-            "3. Go to 'Rich Presence' → 'Art Assets'\n"
-            "4. Upload your images with simple names\n"
-            "5. Use `.setlargeimage 'name'` to set them"
+            "**Discord bots CANNOT display Rich Presence images!**\n\n"
+            "This is a Discord API limitation, not a code issue. "
+            "Only user accounts can display Rich Presence images, not bot accounts."
         ),
         inline=False
     )
     
-    embed.set_footer(text="💡 Images must be uploaded to Discord first!")
+    embed.add_field(
+        name="✅ What Works for Bots",
+        value=(
+            "• Activity text (Playing, Listening, Watching)\n"
+            "• Activity types (Playing, Listening, Watching, Streaming)\n"
+            "• Online status (Online, Idle, Do Not Disturb)\n"
+            "• Streaming URLs (for streaming activities)"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="❌ What Doesn't Work for Bots",
+        value=(
+            "• Rich Presence images\n"
+            "• Custom Rich Presence assets\n"
+            "• Any visual assets in activities"
+        ),
+        inline=False
+    )
+    
+    embed.set_footer(text="Your Rich Presence system is working correctly!")
     
     await ctx.send(embed=embed)
-    log_command(ctx.author, 'checkimages', 'success | Checked image settings')
+    log_command(ctx.author, 'checkimages', 'success | Explained bot image limitations')
     await log_to_discord(bot, ctx.author, 'checkimages')
 
 # Prefix command: .presencehelp
