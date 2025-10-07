@@ -140,6 +140,59 @@ Examples:
 </tr>
 </table>
 
+### 🎭 Rich Presence Management
+
+<table>
+<tr>
+<td width="30%"><code>.setstatus &lt;status&gt;</code></td>
+<td>Change bot status (online, idle, dnd, invisible)</td>
+</tr>
+<tr>
+<td><code>.setactivity &lt;text&gt;</code></td>
+<td>Set what your bot shows as doing</td>
+</tr>
+<tr>
+<td><code>.settype &lt;type&gt;</code></td>
+<td>Set activity type (playing, listening, watching, streaming, competing)</td>
+</tr>
+<tr>
+<td><code>.setstreaming &lt;true/false&gt;</code></td>
+<td>Enable/disable streaming presence</td>
+</tr>
+<tr>
+<td><code>.setlargeimage &lt;key&gt;</code></td>
+<td>Set large image for Rich Presence</td>
+</tr>
+<tr>
+<td><code>.setsmallimage &lt;key&gt;</code></td>
+<td>Set small image for Rich Presence</td>
+</tr>
+<tr>
+<td><code>.presenceinfo</code></td>
+<td>Show current Rich Presence settings</td>
+</tr>
+<tr>
+<td><code>.presencehelp</code></td>
+<td>Show complete Rich Presence command guide</td>
+</tr>
+</table>
+
+**🎨 Rich Presence Features:**
+- **Complete Command Control** → Every aspect editable via commands
+- **Image Support** → Large and small images with custom tooltips
+- **Streaming Support** → Full streaming presence control
+- **Settings Persistence** → All changes automatically saved
+- **Real-time Updates** → Changes take effect immediately
+
+**💡 Quick Examples:**
+```
+.setstatus online
+.setactivity "with BrainAllianceFX 🧠"
+.settype playing
+.setlargeimage "brainalliance_logo"
+.setlargetext "BrainAllianceFX Server"
+```
+
 ### ℹ️ Help & Utilities
 
 <table>
@@ -152,6 +205,119 @@ Examples:
 <td>Shows all available commands and how to use them</td>
 </tr>
 </table>
+
+---
+
+## 🎭 Rich Presence System
+
+Your bot features a **completely command-editable** Rich Presence system with full image support! Control every aspect of how your bot appears to users through simple commands.
+
+### 🚀 Quick Start
+
+**Basic Setup:**
+```bash
+.setstatus online
+.setactivity "with BrainAllianceFX 🧠"
+.settype playing
+```
+
+**With Images:**
+```bash
+.setlargeimage "brainalliance_logo"
+.setlargetext "BrainAllianceFX Server"
+.setsmallimage "verified_badge"
+.setsmalltext "Verified Bot"
+```
+
+**Streaming Mode:**
+```bash
+.setstreaming true
+.setstreamtitle "BrainAllianceFX Bot Live"
+.setstreamurl "https://twitch.tv/yourchannel"
+.settype streaming
+```
+
+### 🎯 Complete Command Reference
+
+| Command | Description | Example |
+|:--------|:------------|:--------|
+| `.setstatus <status>` | Change bot status | `.setstatus online` |
+| `.setactivity <text>` | Set activity text | `.setactivity "managing server"` |
+| `.settype <type>` | Set activity type | `.settype playing` |
+| `.setstreaming <true/false>` | Enable/disable streaming | `.setstreaming true` |
+| `.setstreamtitle <title>` | Set streaming title | `.setstreamtitle "Live Now!"` |
+| `.setstreamurl <url>` | Set streaming URL | `.setstreamurl "https://twitch.tv/..."` |
+| `.setservercount <true/false>` | Show/hide server count | `.setservercount true` |
+| `.setmembercount <true/false>` | Show/hide member count | `.setmembercount true` |
+| `.setlargeimage <key>` | Set large image | `.setlargeimage "logo"` |
+| `.setlargetext <text>` | Set large image text | `.setlargetext "Server Name"` |
+| `.setsmallimage <key>` | Set small image | `.setsmallimage "badge"` |
+| `.setsmalltext <text>` | Set small image text | `.setsmalltext "Status"` |
+| `.presenceinfo` | Show current settings | `.presenceinfo` |
+| `.presencehelp` | Show complete guide | `.presencehelp` |
+| `.resetpresence` | Reset to defaults | `.resetpresence` |
+
+### 🎨 Activity Types
+
+- **playing** → "Playing [text]"
+- **listening** → "Listening to [text]"
+- **watching** → "Watching [text]"
+- **streaming** → "Streaming [text]"
+- **competing** → "Competing in [text]"
+
+### 📊 Status Options
+
+- **online** → Green dot
+- **idle** → Yellow dot
+- **dnd** → Red dot (Do Not Disturb)
+- **invisible** → Gray dot
+
+### 🖼️ Image Support
+
+- **Large Image** → Main image displayed in Rich Presence
+- **Large Text** → Tooltip when hovering over large image
+- **Small Image** → Small image next to the large image
+- **Small Text** → Tooltip when hovering over small image
+
+### 💡 Theme Examples
+
+**Gaming Theme:**
+```bash
+.setstatus online
+.setactivity "in the server arena 🏟️"
+.settype competing
+.setlargeimage "gaming_logo"
+.setlargetext "BrainAllianceFX Gaming"
+```
+
+**Professional Theme:**
+```bash
+.setstatus dnd
+.setactivity "managing server infrastructure 🏢"
+.settype watching
+.setlargeimage "company_logo"
+.setlargetext "BrainAllianceFX Management"
+```
+
+**Streaming Theme:**
+```bash
+.setstatus online
+.setstreaming true
+.setstreamtitle "BrainAllianceFX Bot Live"
+.setstreamurl "https://twitch.tv/yourchannel"
+.setlargeimage "stream_logo"
+.setlargetext "Live Now!"
+```
+
+### 🔄 How It Works
+
+- **Settings Persistence** → All changes automatically saved to `rich_presence_settings.json`
+- **Real-time Updates** → Changes take effect immediately, no restart needed
+- **Command Control** → Every aspect controllable via commands
+- **Image Support** → Full Discord Rich Presence image support
+- **Streaming Support** → Complete streaming presence control
+
+For the complete guide with troubleshooting and advanced tips, see [RICH_PRESENCE_GUIDE.md](RICH_PRESENCE_GUIDE.md).
 
 ---
 

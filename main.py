@@ -18,6 +18,9 @@ from messages import (
     HELP_EMBED
 )
 
+# Import Rich Presence system
+from rich_presence import set_presence, set_custom_activity, reset_presence, presence_manager
+
 # --- Minimal web server for Koyeb health check ---
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -103,6 +106,17 @@ async def _delete_invocation(ctx):
             await ctx.message.delete()
     except (discord.Forbidden, discord.HTTPException):
         # If we cannot delete, ignore silently
+        pass
+
+# --- Global hook: update Rich Presence when commands are executed ---
+@bot.after_invoke
+async def _update_presence_after_command(ctx):
+    try:
+        if ctx and ctx.command:
+            # Update Rich Presence to show command activity
+            await set_custom_activity(bot, f"using .{ctx.command.name}")
+    except Exception:
+        # Don't crash the bot if Rich Presence fails
         pass
 
 # --- Console logging helper ---
@@ -373,6 +387,11 @@ async def check_authorized_user(ctx):
 @bot.event
 async def on_ready():
     print(get_status_message("bot_ready", bot_name=bot.user))
+    
+    # Set Rich Presence
+    await set_presence(bot)
+    print("🎭 Rich Presence set!")
+    
     # Automatic startup scan: ensure setup for all members across guilds
     try:
         for guild in bot.guilds:
@@ -1396,6 +1415,347 @@ async def mentor(ctx):
     details = f"Participants: {len(eligible_members)} | " + (", ".join(assigned_names) if assigned_names else "none") + f" | Stage: {stage_channel.name} ({stage_channel.id}) | Role: {role.name} ({role.id})"
     log_command(ctx.author, 'mentor', details)
     await log_to_discord(bot, ctx.author, 'mentor', details=details)
+
+# =============================================================================
+# RICH PRESENCE MANAGEMENT COMMANDS
+# =============================================================================
+
+# Prefix command: .setstatus <status>
+@bot.command(name="setstatus", description="Set bot status (online, idle, dnd, invisible)")
+async def setstatus(ctx, status: str):
+    status_map = {
+        "online": discord.Status.online,
+        "idle": discord.Status.idle,
+        "dnd": discord.Status.dnd,
+        "invisible": discord.Status.invisible
+    }
+    
+    if status.lower() not in status_map:
+        await ctx.send("❌ Invalid status! Use: `online`, `idle`, `dnd`, or `invisible`")
+        return
+    
+    presence_manager.update_setting('bot_status', status_map[status.lower()])
+    await presence_manager.set_presence(bot)
+    await ctx.send(f"✅ Status set to: **{status.lower()}**")
+    log_command(ctx.author, 'setstatus', f"success | Set status: {status}")
+    await log_to_discord(bot, ctx.author, 'setstatus', args=[status])
+
+# Prefix command: .setactivity <text>
+@bot.command(name="setactivity", description="Set Rich Presence activity text")
+async def setactivity(ctx, *, activity_text: str):
+    if not activity_text.strip():
+        await ctx.send("❌ Please provide activity text!")
+        return
+    
+    presence_manager.update_setting('activity_text', activity_text)
+    await presence_manager.set_presence(bot)
+    await ctx.send(f"✅ Activity set to: **{activity_text}**")
+    log_command(ctx.author, 'setactivity', f"success | Set activity: {activity_text}")
+    await log_to_discord(bot, ctx.author, 'setactivity', args=[activity_text])
+
+# Prefix command: .settype <type>
+@bot.command(name="settype", description="Set activity type (playing, listening, watching, streaming, competing)")
+async def settype(ctx, activity_type: str):
+    type_map = {
+        "playing": discord.ActivityType.playing,
+        "listening": discord.ActivityType.listening,
+        "watching": discord.ActivityType.watching,
+        "streaming": discord.ActivityType.streaming,
+        "competing": discord.ActivityType.competing
+    }
+    
+    if activity_type.lower() not in type_map:
+        await ctx.send("❌ Invalid type! Use: `playing`, `listening`, `watching`, `streaming`, or `competing`")
+        return
+    
+    presence_manager.update_setting('activity_type', type_map[activity_type.lower()])
+    await presence_manager.set_presence(bot)
+    await ctx.send(f"✅ Activity type set to: **{activity_type.lower()}**")
+    log_command(ctx.author, 'settype', f"success | Set type: {activity_type}")
+    await log_to_discord(bot, ctx.author, 'settype', args=[activity_type])
+
+# Prefix command: .setstreaming <true/false>
+@bot.command(name="setstreaming", description="Enable/disable streaming presence")
+async def setstreaming(ctx, enable: str):
+    if enable.lower() not in ['true', 'false']:
+        await ctx.send("❌ Use `true` or `false`!")
+        return
+    
+    enable_bool = enable.lower() == 'true'
+    presence_manager.update_setting('enable_streaming', enable_bool)
+    await presence_manager.set_presence(bot)
+    await ctx.send(f"✅ Streaming {'enabled' if enable_bool else 'disabled'}!")
+    log_command(ctx.author, 'setstreaming', f"success | Set streaming: {enable_bool}")
+    await log_to_discord(bot, ctx.author, 'setstreaming', args=[enable])
+
+# Prefix command: .setstreamtitle <title>
+@bot.command(name="setstreamtitle", description="Set streaming title")
+async def setstreamtitle(ctx, *, title: str):
+    if not title.strip():
+        await ctx.send("❌ Please provide a title!")
+        return
+    
+    presence_manager.update_setting('streaming_title', title)
+    await presence_manager.set_presence(bot)
+    await ctx.send(f"✅ Streaming title set to: **{title}**")
+    log_command(ctx.author, 'setstreamtitle', f"success | Set title: {title}")
+    await log_to_discord(bot, ctx.author, 'setstreamtitle', args=[title])
+
+# Prefix command: .setstreamurl <url>
+@bot.command(name="setstreamurl", description="Set streaming URL")
+async def setstreamurl(ctx, url: str):
+    if not url.strip():
+        await ctx.send("❌ Please provide a URL!")
+        return
+    
+    presence_manager.update_setting('streaming_url', url)
+    await presence_manager.set_presence(bot)
+    await ctx.send(f"✅ Streaming URL set to: **{url}**")
+    log_command(ctx.author, 'setstreamurl', f"success | Set URL: {url}")
+    await log_to_discord(bot, ctx.author, 'setstreamurl', args=[url])
+
+# Prefix command: .setservercount <true/false>
+@bot.command(name="setservercount", description="Show/hide server count in presence")
+async def setservercount(ctx, show: str):
+    if show.lower() not in ['true', 'false']:
+        await ctx.send("❌ Use `true` or `false`!")
+        return
+    
+    show_bool = show.lower() == 'true'
+    presence_manager.update_setting('show_server_count', show_bool)
+    await presence_manager.set_presence(bot)
+    await ctx.send(f"✅ Server count {'shown' if show_bool else 'hidden'}!")
+    log_command(ctx.author, 'setservercount', f"success | Set server count: {show_bool}")
+    await log_to_discord(bot, ctx.author, 'setservercount', args=[show])
+
+# Prefix command: .setmembercount <true/false>
+@bot.command(name="setmembercount", description="Show/hide member count in presence")
+async def setmembercount(ctx, show: str):
+    if show.lower() not in ['true', 'false']:
+        await ctx.send("❌ Use `true` or `false`!")
+        return
+    
+    show_bool = show.lower() == 'true'
+    presence_manager.update_setting('show_member_count', show_bool)
+    await presence_manager.set_presence(bot)
+    await ctx.send(f"✅ Member count {'shown' if show_bool else 'hidden'}!")
+    log_command(ctx.author, 'setmembercount', f"success | Set member count: {show_bool}")
+    await log_to_discord(bot, ctx.author, 'setmembercount', args=[show])
+
+# Prefix command: .setlargeimage <key>
+@bot.command(name="setlargeimage", description="Set large image for Rich Presence")
+async def setlargeimage(ctx, image_key: str):
+    if not image_key.strip():
+        await ctx.send("❌ Please provide an image key!")
+        return
+    
+    presence_manager.update_setting('large_image', image_key)
+    await presence_manager.set_presence(bot)
+    await ctx.send(f"✅ Large image set to: **{image_key}**")
+    log_command(ctx.author, 'setlargeimage', f"success | Set large image: {image_key}")
+    await log_to_discord(bot, ctx.author, 'setlargeimage', args=[image_key])
+
+# Prefix command: .setlargetext <text>
+@bot.command(name="setlargetext", description="Set large image text for Rich Presence")
+async def setlargetext(ctx, *, text: str):
+    if not text.strip():
+        await ctx.send("❌ Please provide text!")
+        return
+    
+    presence_manager.update_setting('large_text', text)
+    await presence_manager.set_presence(bot)
+    await ctx.send(f"✅ Large image text set to: **{text}**")
+    log_command(ctx.author, 'setlargetext', f"success | Set large text: {text}")
+    await log_to_discord(bot, ctx.author, 'setlargetext', args=[text])
+
+# Prefix command: .setsmallimage <key>
+@bot.command(name="setsmallimage", description="Set small image for Rich Presence")
+async def setsmallimage(ctx, image_key: str):
+    if not image_key.strip():
+        await ctx.send("❌ Please provide an image key!")
+        return
+    
+    presence_manager.update_setting('small_image', image_key)
+    await presence_manager.set_presence(bot)
+    await ctx.send(f"✅ Small image set to: **{image_key}**")
+    log_command(ctx.author, 'setsmallimage', f"success | Set small image: {image_key}")
+    await log_to_discord(bot, ctx.author, 'setsmallimage', args=[image_key])
+
+# Prefix command: .setsmalltext <text>
+@bot.command(name="setsmalltext", description="Set small image text for Rich Presence")
+async def setsmalltext(ctx, *, text: str):
+    if not text.strip():
+        await ctx.send("❌ Please provide text!")
+        return
+    
+    presence_manager.update_setting('small_text', text)
+    await presence_manager.set_presence(bot)
+    await ctx.send(f"✅ Small image text set to: **{text}**")
+    log_command(ctx.author, 'setsmalltext', f"success | Set small text: {text}")
+    await log_to_discord(bot, ctx.author, 'setsmalltext', args=[text])
+
+# Prefix command: .resetpresence
+@bot.command(name="resetpresence", description="Reset Rich Presence to default settings")
+async def resetpresence(ctx):
+    # Reset to default settings
+    presence_manager.settings = presence_manager.get_default_settings()
+    presence_manager.save_settings()
+    await presence_manager.set_presence(bot)
+    await ctx.send("✅ Presence reset to default!")
+    log_command(ctx.author, 'resetpresence', 'success | Reset to default')
+    await log_to_discord(bot, ctx.author, 'resetpresence')
+
+# Prefix command: .presenceinfo
+@bot.command(name="presenceinfo", description="Show current Rich Presence settings")
+async def presenceinfo(ctx):
+    settings = presence_manager.settings
+    
+    embed = discord.Embed(
+        title="🎭 Rich Presence Settings",
+        color=0x5865F2,
+        timestamp=discord.utils.utcnow()
+    )
+    
+    embed.add_field(
+        name="📊 Basic Settings",
+        value=f"**Status:** {settings['bot_status'].name}\n"
+              f"**Activity Type:** {settings['activity_type'].name}\n"
+              f"**Activity Text:** {settings['activity_text']}",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="📺 Streaming",
+        value=f"**Enabled:** {settings['enable_streaming']}\n"
+              f"**Title:** {settings['streaming_title']}\n"
+              f"**URL:** {settings['streaming_url']}",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="📈 Server Info",
+        value=f"**Show Server Count:** {settings['show_server_count']}\n"
+              f"**Show Member Count:** {settings['show_member_count']}",
+        inline=True
+    )
+    
+    embed.add_field(
+        name="🖼️ Images",
+        value=f"**Large Image:** {settings['large_image'] or 'None'}\n"
+              f"**Large Text:** {settings['large_text'] or 'None'}\n"
+              f"**Small Image:** {settings['small_image'] or 'None'}\n"
+              f"**Small Text:** {settings['small_text'] or 'None'}",
+        inline=True
+    )
+    
+    embed.set_footer(text="💡 Use .presencehelp for command guide")
+    
+    await ctx.send(embed=embed)
+    log_command(ctx.author, 'presenceinfo', 'success | Showed settings')
+    await log_to_discord(bot, ctx.author, 'presenceinfo')
+
+# Prefix command: .presencehelp
+@bot.command(name="presencehelp", description="Show Rich Presence command guide")
+async def presencehelp(ctx):
+    embed = discord.Embed(
+        title="🎭 Rich Presence Command Guide",
+        description="Complete guide to customize your bot's Rich Presence!",
+        color=0x5865F2,
+        timestamp=discord.utils.utcnow()
+    )
+    
+    embed.add_field(
+        name="🔧 Basic Commands",
+        value=(
+            "`.setstatus <status>` → Change bot status\n"
+            "`.setactivity <text>` → Set activity text\n"
+            "`.settype <type>` → Set activity type\n"
+            "`.resetpresence` → Reset to default"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="📺 Streaming Commands",
+        value=(
+            "`.setstreaming <true/false>` → Enable/disable streaming\n"
+            "`.setstreamtitle <title>` → Set streaming title\n"
+            "`.setstreamurl <url>` → Set streaming URL"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="📊 Display Commands",
+        value=(
+            "`.setservercount <true/false>` → Show/hide server count\n"
+            "`.setmembercount <true/false>` → Show/hide member count"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="🖼️ Image Commands",
+        value=(
+            "`.setlargeimage <key>` → Set large image\n"
+            "`.setlargetext <text>` → Set large image text\n"
+            "`.setsmallimage <key>` → Set small image\n"
+            "`.setsmalltext <text>` → Set small image text"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="🎯 Activity Types",
+        value=(
+            "• **playing** - Playing [text]\n"
+            "• **listening** - Listening to [text]\n"
+            "• **watching** - Watching [text]\n"
+            "• **streaming** - Streaming [text]\n"
+            "• **competing** - Competing in [text]"
+        ),
+        inline=True
+    )
+    
+    embed.add_field(
+        name="📊 Status Options",
+        value=(
+            "• **online** - Green dot\n"
+            "• **idle** - Yellow dot\n"
+            "• **dnd** - Red dot (Do Not Disturb)\n"
+            "• **invisible** - Gray dot"
+        ),
+        inline=True
+    )
+    
+    embed.add_field(
+        name="💡 Examples",
+        value=(
+            "`.setactivity \"with BrainAllianceFX 🧠\"`\n"
+            "`.settype playing`\n"
+            "`.setstatus online`\n"
+            "`.setlargeimage \"brainalliance_logo\"`\n"
+            "`.setlargetext \"BrainAllianceFX Server\"`"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="📚 Documentation",
+        value=(
+            "• **README.md** → Complete setup and command guide\n"
+            "• **RICH_PRESENCE_GUIDE.md** → Detailed Rich Presence guide\n"
+            "• **.presenceinfo** → Current Rich Presence settings\n"
+            "• **.help** → All bot commands"
+        ),
+        inline=False
+    )
+    
+    embed.set_footer(text="💜 Made with love for BrainAllianceFX")
+    
+    await ctx.send(embed=embed)
+    log_command(ctx.author, 'presencehelp', 'success | Showed help guide')
+    await log_to_discord(bot, ctx.author, 'presencehelp')
 
 # Run the bot
 bot.run(TOKEN)

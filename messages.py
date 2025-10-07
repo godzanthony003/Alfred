@@ -164,12 +164,37 @@ HELP_EMBED = {
             "inline": False
         },
         {
+            "name": "🎭 Rich Presence",
+            "value": (
+                "`.setstatus <status>` → Change bot status\n"
+                "`.setactivity <text>` → Set activity text\n"
+                "`.settype <type>` → Set activity type\n"
+                "`.setstreaming <true/false>` → Enable/disable streaming\n"
+                "`.setlargeimage <key>` → Set large image\n"
+                "`.setsmallimage <key>` → Set small image\n"
+                "`.presenceinfo` → Show current settings\n"
+                "`.presencehelp` → Complete command guide"
+            ),
+            "inline": False
+        },
+        {
             "name": "💡 Quick Tips",
             "value": (
                 "• Use `.ping` to check bot status\n"
                 "• Channel IDs work best for exact matches\n"
                 "• All actions are logged automatically\n"
-                "• `.back` works for both move commands"
+                "• `.back` works for both move commands\n"
+                "• Use `.presencehelp` for Rich Presence guide"
+            ),
+            "inline": False
+        },
+        {
+            "name": "📚 Documentation",
+            "value": (
+                "• **README.md** → Complete setup and command guide\n"
+                "• **RICH_PRESENCE_GUIDE.md** → Detailed Rich Presence guide\n"
+                "• **.presencehelp** → Rich Presence command reference\n"
+                "• **.presenceinfo** → Current Rich Presence settings"
             ),
             "inline": False
         }
