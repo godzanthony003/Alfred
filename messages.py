@@ -107,7 +107,8 @@ HELP_EMBED = {
             "value": (
                 "`.mentor` → Assign participation roles to Stage members\n"
                 "`.stopmentor [USER]` → Remove waiting room role & delete private channel\n"
-                "`.setupwaiting` → Auto-create private channels for waiting users"
+                "`.setupwaiting` → Auto-create private channels for waiting users\n"
+                "`.call` → Send DM invite to call to other team members"
             ),
             "inline": False
         },

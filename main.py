@@ -1700,6 +1700,77 @@ async def checkimages(ctx):
     log_command(ctx.author, 'checkimages', 'success | Explained bot image limitations')
     await log_to_discord(bot, ctx.author, 'checkimages')
 
+# Prefix command: .call
+@bot.command(name="call", description="Sends a DM to two specific users inviting them to a call")
+async def call(ctx):
+    # User ID mapping: Ale, Anto, Sandro
+    user_ids = {
+        "769582403093004288": "Ale",
+        "539464122027343873": "Anto", 
+        "1420541599334662287": "Sandro"
+    }
+    
+    # Get the caller's ID
+    caller_id = str(ctx.author.id)
+    
+    # Check if caller is one of the three users
+    if caller_id not in user_ids:
+        log_command(ctx.author, 'call', 'failed | Caller not authorized for call command')
+        await ctx.send(get_error_message("not_authorized"))
+        return
+    
+    # Determine which two users to DM (exclude the caller)
+    target_user_ids = [user_id for user_id in user_ids.keys() if user_id != caller_id]
+    
+    # Discord link
+    call_link = "https://discord.com/channels/1388900966727680141/1388900967948353568"
+    
+    # Create the DM message
+    caller_name = user_ids[caller_id]
+    message = f"# Hey! {ctx.author.mention} ti vuole in call. Vieni!\n{call_link}"
+    
+    # Send DM to both target users
+    successful_dms = 0
+    failed_dms = []
+    
+    for target_id in target_user_ids:
+        try:
+            # Fetch the user
+            target_user = await bot.fetch_user(int(target_id))
+            
+            # Send DM
+            await target_user.send(message)
+            successful_dms += 1
+            log_command(ctx.author, 'call', f"success | DM sent to {user_ids[target_id]} ({target_id})")
+            
+        except discord.Forbidden:
+            # User has DMs disabled
+            failed_dms.append(f"{user_ids[target_id]} (DMs disabled)")
+            log_command(ctx.author, 'call', f"failed | DMs disabled for {user_ids[target_id]} ({target_id})")
+            
+        except discord.NotFound:
+            # User not found
+            failed_dms.append(f"{user_ids[target_id]} (user not found)")
+            log_command(ctx.author, 'call', f"failed | User not found: {user_ids[target_id]} ({target_id})")
+            
+        except discord.HTTPException as e:
+            # Other HTTP errors
+            failed_dms.append(f"{user_ids[target_id]} (HTTP error)")
+            log_command(ctx.author, 'call', f"failed | HTTP error for {user_ids[target_id]} ({target_id}): {e}")
+    
+    # Send confirmation message
+    if successful_dms > 0:
+        if failed_dms:
+            await ctx.send(f"✅ Call sent to {successful_dms} user(s)! Failed: {', '.join(failed_dms)}")
+        else:
+            await ctx.send(f"✅ Call sent to {successful_dms} user(s)!")
+    else:
+        await ctx.send(f"❌ Failed to send call to any users. Errors: {', '.join(failed_dms)}")
+    
+    # Log to Discord
+    details = f"Caller: {caller_name} ({caller_id}) | Successful DMs: {successful_dms} | Failed: {', '.join(failed_dms) if failed_dms else 'none'}"
+    await log_to_discord(bot, ctx.author, 'call', details=details)
+
 # Prefix command: .presencehelp
 @bot.command(name="presencehelp", description="Show Rich Presence command guide")
 async def presencehelp(ctx):
