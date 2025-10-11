@@ -438,9 +438,10 @@ async def ensure_waiting_setup_for_member(guild: discord.Guild, member: discord.
         try:
             welcome_message = (
                 f"👋 Ciao {member.mention},\n"
-                f"questo è il tuo canale privato! ✨\n\n"
-                f"📌 Prima dell’orario della tua mentorship, ricordati di entrare nella Sala d’Attesa: lì attenderai qualche minuto finché Anthony (il nostro trader) o un membro dello staff ti sposteranno nel canale vocale per la sessione privata.\n\n"
-                f"Qui potrai anche comunicare direttamente con Anthony e, se necessario, con altri membri dello staff. 🚀"
+                f"Complimenti per aver avuto il coraggio di iniziare il tuo percorso di **Trading** con noi 💪\n\n"
+                f"Con dedizione e studio potrai davvero **cambiare la tua vita** 🚀\n\n"
+                f"Questa è la tua **chat privata** con il trader 💬\n"
+                f"Puoi fare qualsiasi tipo di domanda, senza problemi — siamo qui per aiutarti a **crescere** e, soprattutto, a **fare profitti** 💸🔥"
             )
             await channel.send(welcome_message)
         except Exception:
@@ -523,57 +524,6 @@ async def unmuteall(ctx):
     details = f"Members unmuted: {members_unmuted} | " + (", ".join(unmuted_names) if unmuted_names else "none") + f" | Channel: {voice_channel.name}"
     log_command(ctx.author, 'unmuteall', details)
     await log_to_discord(bot, ctx.author, 'unmuteall', details=details)
-
-# Prefix command: .nosb (disable soundboard in the issuer's current voice channel)
-@bot.command(name="nosb", description="Disables soundboard for everyone in your current voice channel")
-async def nosb(ctx):
-    if not ctx.author.voice or not ctx.author.voice.channel:
-        log_command(ctx.author, 'nosb', 'failed | Reason: caller not in a voice channel')
-        await ctx.send(get_error_message("not_in_voice"))
-        return
-
-    channel = ctx.author.voice.channel
-    everyone_role = ctx.guild.default_role
-
-    try:
-        overwrite = channel.overwrites_for(everyone_role)
-        overwrite.use_soundboard = False
-        await channel.set_permissions(everyone_role, overwrite=overwrite)
-        await ctx.send(get_success_message("soundboard_disabled_channel", channel_name=channel.name, channel_id=channel.id))
-        log_command(ctx.author, 'nosb', f"success | Soundboard disabled in #{channel.name} ({channel.id})")
-        await log_to_discord(bot, ctx.author, 'nosb', details=f"Soundboard disabled in #{channel.name} ({channel.id})")
-    except discord.Forbidden:
-        log_command(ctx.author, 'nosb', 'failed | Missing permissions to update @everyone')
-        await ctx.send(get_error_message("missing_permissions", action="update permissions for", member_name="@everyone"))
-    except discord.HTTPException as e:
-        log_command(ctx.author, 'nosb', f"failed | HTTP error while updating permissions: {e}")
-        await ctx.send(get_error_message("http_error", action="updating permissions for", member_name="@everyone", error=e))
-
-# Prefix command: .dosb (enable/restores soundboard in the issuer's current voice channel)
-@bot.command(name="dosb", description="Re-enables soundboard (restore defaults) in your current voice channel")
-async def dosb(ctx):
-    if not ctx.author.voice or not ctx.author.voice.channel:
-        log_command(ctx.author, 'dosb', 'failed | Reason: caller not in a voice channel')
-        await ctx.send(get_error_message("not_in_voice"))
-        return
-
-    channel = ctx.author.voice.channel
-    everyone_role = ctx.guild.default_role
-
-    try:
-        overwrite = channel.overwrites_for(everyone_role)
-        # Set to None to clear explicit deny/allow and restore server default
-        overwrite.use_soundboard = None
-        await channel.set_permissions(everyone_role, overwrite=overwrite)
-        await ctx.send(get_success_message("soundboard_enabled_channel", channel_name=channel.name, channel_id=channel.id))
-        log_command(ctx.author, 'dosb', f"success | Soundboard restored in #{channel.name} ({channel.id})")
-        await log_to_discord(bot, ctx.author, 'dosb', details=f"Soundboard restored in #{channel.name} ({channel.id})")
-    except discord.Forbidden:
-        log_command(ctx.author, 'dosb', 'failed | Missing permissions to update @everyone')
-        await ctx.send(get_error_message("missing_permissions", action="update permissions for", member_name="@everyone"))
-    except discord.HTTPException as e:
-        log_command(ctx.author, 'dosb', f"failed | HTTP error while updating permissions: {e}")
-        await ctx.send(get_error_message("http_error", action="updating permissions for", member_name="@everyone", error=e))
 
 # Prefix command: .auth USERID
 @bot.command(name="auth", description="Authorizes a user to use bot commands (restricted to bot owner)")
