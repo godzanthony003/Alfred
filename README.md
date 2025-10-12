@@ -20,6 +20,7 @@ BrainAllianceFX is your all-in-one server companion, designed to make Discord se
 
 🎓 **Smart Mentorship System** → Automate role assignments and private channel creation  
 🎵 **Voice Channel Mastery** → Move, mute, and manage users with ease  
+🎭 **Advanced Role Management** → Add/remove roles with fuzzy name matching  
 🔐 **Secure by Design** → Advanced authorization system keeps your server safe  
 ⏮️ **Undo Actions** → Made a mistake? Roll back with one command  
 📊 **Crystal Clear Logs** → Track everything that happens in your server  
@@ -114,6 +115,20 @@ BrainAllianceFX is your all-in-one server companion, designed to make Discord se
 Examples:
 .massban 123456789012345678 987654321098765432
 .massban 111111111111111111 222222222222222222 333333333333333333
+```
+
+**Role Management**
+```
+.role -a <role> -u <users>     ← Add role to users
+.role -r <role> -u <users>     ← Remove role from users
+.role -a <role> -b <bots>      ← Add role to bots
+.role -r <role> -i <role>      ← Remove role from members in role
+
+Examples:
+.role -a scientist -u anthony004 sandroposella yiiky camofx
+.role -r member -u anthony003 alfred yiiky
+.role -r member -i scientist
+.role -a 1388912883450118274 -u anthony004 sandroposella
 ```
 
 **Nickname Management**

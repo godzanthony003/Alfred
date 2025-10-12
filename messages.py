@@ -110,62 +110,29 @@ SUCCESS_MESSAGES = {
 
 HELP_EMBED = {
     "title": "🧠✨ BrainAllianceFX Bot Commands",
-    "description": "All available commands at your fingertips! Use `.` prefix for everything.",
+    "description": "**Your all-in-one Discord server management companion!**\n\nUse `.` prefix for all commands. All actions are logged automatically.",
     "color": 0x5865F2,  # Discord blurple
-    "footer": "💜 Made with love for BrainAllianceFX",
+    "footer": "💜 Made with love for BrainAllianceFX • Use .presencehelp for Rich Presence guide",
     
     "fields": [
         {
             "name": "🎓 Mentorship & Events",
             "value": (
-                "`.mentor` → Assign participation roles to Stage members\n"
-                "`.stopmentor [USER]` → Remove waiting room role & delete private channel\n"
-                "`.setupwaiting` → Auto-create private channels for waiting users\n"
-                "`.call` → Send DM invite to call to other team members"
+                "`.mentor` → Assign roles to Stage channel participants\n"
+                "`.stopmentor` → Remove waiting room roles & cleanup\n"
+                "`.setupwaiting` → Auto-create private channels for users\n"
+                "`.call` → Send DM invites to team members"
             ),
             "inline": False
         },
         {
-            "name": "🔊 Voice Controls",
+            "name": "🔊 Voice Channel Control",
             "value": (
-                "`.muteall` / `.unmuteall` → Mute/unmute everyone (except you!)\n"
-                "`.nosb` / `.dosb` → Disable/enable soundboard"
-            ),
-            "inline": False
-        },
-        {
-            "name": "🚀 Move Users",
-            "value": (
+                "`.muteall` / `.unmuteall` → Mute/unmute everyone in your channel\n"
                 "`.moveall <channel>` → Move your channel to another\n"
                 "`.servermoveall <channel>` → Move EVERYONE to one channel\n"
-                "`.back` → Undo last move (lifesaver!)\n"
-                "*Tip: Use channel ID or fuzzy names like 'alobby'*"
-            ),
-            "inline": False
-        },
-        {
-            "name": "👢 Kick & 🔨 Ban",
-            "value": (
-                "`.kickall` → Clear your voice channel\n"
-                "`.serverkickall` → Clear ALL voice channels\n"
-                "`.massban <id> <id>...` → Ban multiple users by ID"
-            ),
-            "inline": False
-        },
-        {
-            "name": "🧹 Channel Management",
-            "value": (
-                "`.ca` → Clear last 100 messages + KABOOM! 💥\n"
-                "*Perfect for cleaning up channels*"
-            ),
-            "inline": False
-        },
-        {
-            "name": "👤 Nicknames",
-            "value": (
-                "`.nick <user> <new_nick>` → Change someone's nickname\n"
-                "`.nick <user> -` → Clear nickname\n"
-                "*Supports mentions, IDs, or fuzzy names*"
+                "`.kickall` / `.serverkickall` → Clear voice channels\n"
+                "`.back` → Undo last move operation"
             ),
             "inline": False
         },
@@ -181,6 +148,27 @@ HELP_EMBED = {
             "inline": False
         },
         {
+            "name": "🔨 Moderation Tools",
+            "value": (
+                "`.massban <id> <id>...` → Ban multiple users by ID\n"
+                "`.nick <user> <nick>` → Change someone's nickname\n"
+                "`.nick <user> -` → Clear nickname\n"
+                "`.ca` → Clear last 100 messages + KABOOM! 💥"
+            ),
+            "inline": False
+        },
+        {
+            "name": "🎭 Rich Presence Control",
+            "value": (
+                "`.setstatus <status>` → Change bot status\n"
+                "`.setactivity <text>` → Set activity text\n"
+                "`.settype <type>` → Set activity type\n"
+                "`.presenceinfo` → Show current settings\n"
+                "`.presencehelp` → Complete Rich Presence guide"
+            ),
+            "inline": False
+        },
+        {
             "name": "🔐 Authorization (Owner Only)",
             "value": (
                 "`.auth <user_id>` → Grant command access\n"
@@ -189,39 +177,23 @@ HELP_EMBED = {
             "inline": False
         },
         {
-            "name": "🎭 Rich Presence",
+            "name": "💡 Pro Tips",
             "value": (
-                "`.setstatus <status>` → Change bot status\n"
-                "`.setactivity <text>` → Set activity text\n"
-                "`.settype <type>` → Set activity type\n"
-                "`.setstreaming <true/false>` → Enable/disable streaming\n"
-                "`.setlargeimage <key>` → Set large image\n"
-                "`.setsmallimage <key>` → Set small image\n"
-                "`.refreshpresence` → Refresh Rich Presence\n"
-                "`.checkimages` → Check image configuration\n"
-                "`.presenceinfo` → Show current settings\n"
-                "`.presencehelp` → Complete command guide"
-            ),
-            "inline": False
-        },
-        {
-            "name": "💡 Quick Tips",
-            "value": (
-                "• Use `.ping` to check bot status\n"
-                "• Channel IDs work best for exact matches\n"
+                "• Use channel IDs for exact matches\n"
+                "• Fuzzy matching works for names and roles\n"
                 "• All actions are logged automatically\n"
-                "• `.back` works for both move commands\n"
-                "• Use `.presencehelp` for Rich Presence guide"
+                "• `.back` undoes move operations\n"
+                "• Use `.ping` to check bot status"
             ),
             "inline": False
         },
         {
             "name": "📚 Documentation",
             "value": (
-                "• **README.md** → Complete setup and command guide\n"
-                "• **RICH_PRESENCE_GUIDE.md** → Detailed Rich Presence guide\n"
-                "• **.presencehelp** → Rich Presence command reference\n"
-                "• **.presenceinfo** → Current Rich Presence settings"
+                "• **README.md** → Complete setup guide\n"
+                "• **RICH_PRESENCE_GUIDE.md** → Rich Presence guide\n"
+                "• **.presencehelp** → Rich Presence commands\n"
+                "• **.presenceinfo** → Current settings"
             ),
             "inline": False
         }
