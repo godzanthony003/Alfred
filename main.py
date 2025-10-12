@@ -343,6 +343,64 @@ def resolve_member_by_query(guild: discord.Guild, query: str):
 
     raise ValueError("not_found")
 
+# --- Role resolution helper ---
+def resolve_role_by_query(guild: discord.Guild, query: str):
+    """Resolve a role by ID or fuzzy name within the given guild.
+
+    Returns a discord.Role or raises ValueError if not found/invalid.
+    """
+    if not query:
+        raise ValueError("empty_query")
+
+    # Try numeric ID first
+    try:
+        role_id = int(query)
+        role = guild.get_role(role_id)
+        if isinstance(role, discord.Role):
+            return role
+    except Exception:
+        pass
+
+    # Fuzzy match by name among roles
+    roles = list(guild.roles)
+    if not roles:
+        raise ValueError("no_roles")
+
+    normalized_query = _normalize_channel_name(query)
+
+    best_role = None
+    best_score = 0.0
+    for role in roles:
+        name = role.name
+        name_lower = name.lower()
+        norm_name = _normalize_channel_name(name)
+
+        score = 0.0
+        if name_lower == query.lower():
+            score = 1.0
+        elif name_lower.startswith(query.lower()):
+            score = 0.95
+        elif query.lower() in name_lower:
+            score = 0.9
+        elif normalized_query and normalized_query in norm_name:
+            score = 0.85
+        else:
+            try:
+                score = difflib.SequenceMatcher(a=normalized_query, b=norm_name).ratio() * 0.8
+            except Exception:
+                score = 0.0
+
+        # Slight tie-breaker: prefer roles with more members when scores close
+        if score > best_score or (abs(score - best_score) < 0.02 and best_role and len(role.members) > len(best_role.members)):
+            best_score = score
+            best_role = role
+
+    # Require a minimal threshold to avoid wild mismatches
+    if best_role and best_score >= 0.6:
+        return best_role
+
+    raise ValueError("not_found")
+
 # Load authorized users from JSON file or use default
 async def load_authorized_users():
     try:
@@ -1720,6 +1778,170 @@ async def call(ctx):
     # Log to Discord
     details = f"Caller: {caller_name} ({caller_id}) | Successful DMs: {successful_dms} | Failed: {', '.join(failed_dms) if failed_dms else 'none'}"
     await log_to_discord(bot, ctx.author, 'call', details=details)
+
+# Prefix command: .role
+@bot.command(name="role", description="Manage roles for users and bots")
+async def role(ctx, *, args: str = None):
+    if not args:
+        await ctx.send(get_error_message("role_no_arguments"))
+        return
+    
+    # Parse arguments
+    args_list = args.split()
+    if len(args_list) < 2:
+        await ctx.send(get_error_message("role_insufficient_arguments"))
+        return
+    
+    # Parse flags and targets
+    flags = {}
+    targets = []
+    role_query = None
+    action = None
+    
+    i = 0
+    while i < len(args_list):
+        arg = args_list[i]
+        if arg.startswith('-'):
+            if arg == '-u':
+                flags['users'] = True
+            elif arg == '-b':
+                flags['bots'] = True
+            elif arg == '-i':
+                flags['in_role'] = True
+            elif arg == '-a':
+                flags['add'] = True
+                action = 'add'
+            elif arg == '-r':
+                flags['remove'] = True
+                action = 'remove'
+            else:
+                await ctx.send(get_error_message("role_invalid_flag", flag=arg))
+                return
+        else:
+            if flags.get('in_role') and not role_query:
+                role_query = arg
+            elif action and not role_query:
+                role_query = arg
+            else:
+                targets.append(arg)
+        i += 1
+    
+    # Validate arguments
+    if not action:
+        await ctx.send(get_error_message("role_no_action"))
+        return
+    
+    if not role_query:
+        await ctx.send(get_error_message("role_no_role"))
+        return
+    
+    if not targets and not flags.get('in_role'):
+        await ctx.send(get_error_message("role_no_targets"))
+        return
+    
+    # Resolve the role
+    try:
+        role = resolve_role_by_query(ctx.guild, role_query)
+    except ValueError as ve:
+        if str(ve) == "not_found":
+            await ctx.send(get_error_message("role_not_found_query", query=role_query))
+        else:
+            await ctx.send(get_error_message("role_not_found_query", query=role_query))
+        log_command(ctx.author, 'role', f"failed | Role not found from query: {role_query}")
+        return
+    
+    # Get target members
+    target_members = []
+    
+    if flags.get('in_role'):
+        # Get all members who have the specified role
+        for member in ctx.guild.members:
+            if role in member.roles:
+                if flags.get('users') and not member.bot:
+                    target_members.append(member)
+                elif flags.get('bots') and member.bot:
+                    target_members.append(member)
+                elif not flags.get('users') and not flags.get('bots'):
+                    # If neither -u nor -b specified, include all
+                    target_members.append(member)
+    else:
+        # Resolve individual targets
+        for target in targets:
+            try:
+                member = resolve_member_by_query(ctx.guild, target)
+                if flags.get('users') and member.bot:
+                    continue  # Skip bots if only users requested
+                elif flags.get('bots') and not member.bot:
+                    continue  # Skip users if only bots requested
+                target_members.append(member)
+            except ValueError:
+                # Log failed resolution but continue with others
+                log_command(ctx.author, 'role', f"warning | Failed to resolve target: {target}")
+                continue
+    
+    if not target_members:
+        await ctx.send(get_error_message("role_no_valid_targets"))
+        return
+    
+    # Perform role operations
+    success_count = 0
+    failed_count = 0
+    success_names = []
+    failed_names = []
+    
+    for member in target_members:
+        try:
+            if action == 'add':
+                if role not in member.roles:
+                    await member.add_roles(role, reason=f"Role management by {ctx.author} ({ctx.author.id})")
+                    success_count += 1
+                    success_names.append(member.display_name)
+                else:
+                    failed_count += 1
+                    failed_names.append(f"{member.display_name} (already has role)")
+            elif action == 'remove':
+                if role in member.roles:
+                    await member.remove_roles(role, reason=f"Role management by {ctx.author} ({ctx.author.id})")
+                    success_count += 1
+                    success_names.append(member.display_name)
+                else:
+                    failed_count += 1
+                    failed_names.append(f"{member.display_name} (doesn't have role)")
+        except discord.Forbidden:
+            failed_count += 1
+            failed_names.append(f"{member.display_name} (missing permissions)")
+            log_command(ctx.author, 'role', f"failed | Missing permissions for {member.display_name}")
+        except discord.HTTPException as e:
+            failed_count += 1
+            failed_names.append(f"{member.display_name} (HTTP error)")
+            log_command(ctx.author, 'role', f"failed | HTTP error for {member.display_name}: {e}")
+    
+    # Send result message
+    if success_count > 0 and failed_count == 0:
+        await ctx.send(get_success_message("role_operation_success", 
+                                         action=action, 
+                                         count=success_count, 
+                                         role_name=role.name,
+                                         target_names=", ".join(success_names)))
+    elif success_count > 0 and failed_count > 0:
+        await ctx.send(get_success_message("role_operation_partial", 
+                                         action=action,
+                                         success_count=success_count,
+                                         failed_count=failed_count,
+                                         role_name=role.name,
+                                         success_names=", ".join(success_names),
+                                         failed_names=", ".join(failed_names)))
+    else:
+        await ctx.send(get_error_message("role_operation_failed", 
+                                       action=action,
+                                       failed_count=failed_count,
+                                       role_name=role.name,
+                                       failed_names=", ".join(failed_names)))
+    
+    # Log to Discord
+    details = f"Action: {action} | Role: {role.name} ({role.id}) | Success: {success_count} | Failed: {failed_count} | Targets: {', '.join(success_names) if success_names else 'none'}"
+    log_command(ctx.author, 'role', details)
+    await log_to_discord(bot, ctx.author, 'role', args=[args], details=details)
 
 # Prefix command: .presencehelp
 @bot.command(name="presencehelp", description="Show Rich Presence command guide")

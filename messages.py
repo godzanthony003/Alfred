@@ -42,7 +42,17 @@ ERROR_MESSAGES = {
     "waiting_role_not_found": "Ruolo Sala d’Attesa non trovato (ID: {role_id})!",
     "channel_create_failed": "Errore nella creazione del canale per @{member_name} {member_id}: {error}",
     "stopmentor_no_waiting_in_channel": "Nessun utente con il ruolo Sala d'Attesa trovato in questo canale.",
-    "no_messages_to_clear": "No messages found to clear in this channel!"
+    "no_messages_to_clear": "No messages found to clear in this channel!",
+    # Role command errors
+    "role_no_arguments": "Please provide arguments! Usage: `.role -a/-r <role> -u/-b <targets>` or `.role -a/-r <role> -i <role>`",
+    "role_insufficient_arguments": "Insufficient arguments! Usage: `.role -a/-r <role> -u/-b <targets>` or `.role -a/-r <role> -i <role>`",
+    "role_invalid_flag": "Invalid flag: `{flag}`. Use `-u` (users), `-b` (bots), `-i` (in role), `-a` (add), or `-r` (remove)",
+    "role_no_action": "No action specified! Use `-a` to add roles or `-r` to remove roles",
+    "role_no_role": "No role specified! Provide a role ID or name after the action flag",
+    "role_no_targets": "No targets specified! Provide user names/IDs or use `-i` to target members in a role",
+    "role_no_valid_targets": "No valid targets found! Check your user names/IDs or role names",
+    "role_not_found_query": "Role not found for query: '{query}'. Try a closer name or the role ID.",
+    "role_operation_failed": "Role {action} failed! {failed_count} target(s) could not be processed: {failed_names}"
 }
 
 # =============================================================================
@@ -88,7 +98,10 @@ SUCCESS_MESSAGES = {
     "stopmentor_done": "Sessione terminata per @{member_name}. Canale eliminato: {channel_deleted}. Ruolo Sala d'Attesa rimosso: {role_removed}.",
     "stopmentor_done_channel": "Sessione terminata. Utenti aggiornati: {updated}. Canale eliminato: {channel_deleted}.",
     # Clear all command
-    "kaboom_message": "💥 **KABOOM!** 💥\n\n*Channel cleared!*"
+    "kaboom_message": "💥 **KABOOM!** 💥\n\n*Channel cleared!*",
+    # Role command success messages
+    "role_operation_success": "✅ Successfully {action}ed role **{role_name}** to {count} target(s): {target_names}",
+    "role_operation_partial": "⚠️ Partially successful! {action}ed role **{role_name}** to {success_count} target(s): {success_names}\nFailed for {failed_count} target(s): {failed_names}"
 }
 
 # =============================================================================
@@ -153,6 +166,17 @@ HELP_EMBED = {
                 "`.nick <user> <new_nick>` → Change someone's nickname\n"
                 "`.nick <user> -` → Clear nickname\n"
                 "*Supports mentions, IDs, or fuzzy names*"
+            ),
+            "inline": False
+        },
+        {
+            "name": "🎭 Role Management",
+            "value": (
+                "`.role -a <role> -u <users>` → Add role to users\n"
+                "`.role -r <role> -u <users>` → Remove role from users\n"
+                "`.role -a <role> -b <bots>` → Add role to bots\n"
+                "`.role -r <role> -i <role>` → Remove role from members in role\n"
+                "*Supports fuzzy names, IDs, and mentions*"
             ),
             "inline": False
         },
