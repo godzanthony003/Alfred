@@ -366,6 +366,7 @@ Create a `.env` file:
 DISCORD_TOKEN=your_bot_token_here
 KEEPALIVE_URL=your_keepalive_url_here
 LOG_CHANNEL_ID=your_log_channel_id_here
+AUTHORIZED_USERS=user_id_1,user_id_2,user_id_3
 ```
 
 **4. Launch!**
@@ -392,6 +393,7 @@ Port: 8000
 - `DISCORD_TOKEN` → Your bot token (required)
 - `KEEPALIVE_URL` → Your service URL (optional)
 - `LOG_CHANNEL_ID` → Log channel ID (optional)
+- `AUTHORIZED_USERS` → Comma-separated user IDs (optional)
 
 **Step 5:** Hit deploy and watch the magic happen! ✨
 
@@ -406,6 +408,33 @@ Port: 8000
 | `DISCORD_TOKEN` | Your Discord bot token | ✅ |
 | `KEEPALIVE_URL` | Keeps your bot awake (helpful for free hosting) | ❌ |
 | `LOG_CHANNEL_ID` | Where command logs are sent | ❌ |
+| `AUTHORIZED_USERS` | Comma-separated list of user IDs with command access | ❌ |
+
+### Authorization System
+
+The bot supports **two methods** for managing authorized users:
+
+**Method 1: Environment Variable (Recommended)**
+```env
+AUTHORIZED_USERS=539464122027343873,769582403093004288,1420541599334662287
+```
+- ✅ Easy to manage in deployment platforms
+- ✅ Version controlled with your code
+- ✅ No file dependencies
+
+**Method 2: JSON File (Dynamic)**
+```json
+{
+    "539464122027343873": "StaffBotOwner",
+    "769582403093004288": "Ale",
+    "1420541599334662287": "Sandro"
+}
+```
+- ✅ Can be modified at runtime with `.auth`/`.deauth` commands
+- ✅ Stores usernames for better logging
+- ✅ Persistent across bot restarts
+
+**Priority:** JSON file takes precedence over `.env` file if both exist.
 
 ### Required Bot Permissions
 

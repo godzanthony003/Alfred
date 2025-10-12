@@ -401,21 +401,44 @@ def resolve_role_by_query(guild: discord.Guild, query: str):
 
     raise ValueError("not_found")
 
-# Load authorized users from JSON file or use default
+# Load authorized users from .env file, JSON file, or use default
 async def load_authorized_users():
+    authorized_users = {}
+    
+    # First, try to load from .env file
+    env_auth_users = os.getenv('AUTHORIZED_USERS')
+    if env_auth_users:
+        try:
+            # Parse comma-separated user IDs from .env
+            user_ids = [user_id.strip() for user_id in env_auth_users.split(',') if user_id.strip()]
+            for user_id in user_ids:
+                try:
+                    # Validate user ID format
+                    int(user_id)
+                    authorized_users[user_id] = f"User_{user_id}"  # Default name
+                except ValueError:
+                    print(f"Warning: Invalid user ID in AUTHORIZED_USERS: {user_id}")
+        except Exception as e:
+            print(f"Error parsing AUTHORIZED_USERS from .env: {e}")
+    
+    # Then, try to load from JSON file (this will override .env if both exist)
     try:
         async with aiofiles.open(AUTH_FILE, 'r') as f:
-            data = json.loads(await f.read())
-            return data
+            json_data = json.loads(await f.read())
+            # Merge JSON data with .env data (JSON takes precedence)
+            authorized_users.update(json_data)
     except FileNotFoundError:
-        return {
-            '539464122027343873': 'StaffBotOwner'  # Default: your user ID
-        }
+        pass  # JSON file doesn't exist, that's okay
     except json.JSONDecodeError:
         print(get_status_message("json_error"))
-        return {
-            '539464122027343873': 'StaffBotOwner'
+    
+    # If no authorized users found anywhere, use default
+    if not authorized_users:
+        authorized_users = {
+            '539464122027343873': 'StaffBotOwner'  # Default: your user ID
         }
+    
+    return authorized_users
 
 # Save authorized users to JSON file
 async def save_authorized_users(authorized_users):
